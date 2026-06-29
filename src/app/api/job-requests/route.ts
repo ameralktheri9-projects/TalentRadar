@@ -1,44 +1,63 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
-import { authOptions } from "@/lib/auth";
-import { AuthUser } from "@/lib/auth";
+import { authOptions, AuthUser } from "@/lib/auth";
+import { JobRequestStatus } from "@prisma/client";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
   }
 
   const user = session.user as AuthUser;
+  const { searchParams } = new URL(req.url);
+  const statusParam = searchParams.get("status");
 
   try {
-    const where = user.userType === "COMPANY" ? { company_id: user.entityId } : {};
+    if (user.userType === "AGENCY") {
+      // Agency users see only OPEN requests
+      const where: Record<string, unknown> = { status: "OPEN" };
+      if (statusParam && statusParam !== "ALL") where.status = statusParam;
+
+      const jobRequests = await prisma.jobRequest.findMany({
+        where,
+        include: {
+          _count: { select: { proposals: true } },
+        },
+        orderBy: { created_at: "desc" },
+      });
+      return NextResponse.json({ data: jobRequests });
+    }
+
+    // Company users see their own job requests
+    const where: Record<string, unknown> = { company_id: user.entityId };
+    if (statusParam && statusParam !== "ALL") where.status = statusParam as JobRequestStatus;
+
     const jobRequests = await prisma.jobRequest.findMany({
       where,
       include: {
-        company: true,
         creator: { select: { full_name: true, email: true } },
-        proposals: { select: { id: true, status: true } },
+        _count: { select: { proposals: true } },
       },
       orderBy: { created_at: "desc" },
     });
     return NextResponse.json({ data: jobRequests });
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "خطأ في الخادم" }, { status: 500 });
   }
 }
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
   }
 
   const user = session.user as AuthUser;
   if (user.userType !== "COMPANY") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return NextResponse.json({ error: "غير مسموح" }, { status: 403 });
   }
 
   try {
@@ -58,6 +77,16 @@ export async function POST(req: NextRequest) {
       proposal_deadline,
     } = body;
 
+    // Validate required fields
+    if (!title || !description || !sector || !experience_level || salary_min == null || salary_max == null || !budget_type || budget_value == null) {
+      return NextResponse.json({ error: "جميع الحقول المطلوبة يجب تعبئتها" }, { status: 400 });
+    }
+
+    // Validate salary range
+    if (Number(salary_min) >= Number(salary_max)) {
+      return NextResponse.json({ error: "يجب أن يكون الراتب الأدنى أقل من الراتب الأقصى" }, { status: 400 });
+    }
+
     const jobRequest = await prisma.jobRequest.create({
       data: {
         company_id: user.entityId!,
@@ -66,13 +95,13 @@ export async function POST(req: NextRequest) {
         description,
         sector,
         experience_level,
-        salary_min,
-        salary_max,
+        salary_min: Number(salary_min),
+        salary_max: Number(salary_max),
         saudi_national_required: saudi_national_required || false,
-        headcount: headcount || 1,
-        sla_days: sla_days || 30,
+        headcount: Number(headcount) || 1,
+        sla_days: Number(sla_days) || 30,
         budget_type,
-        budget_value,
+        budget_value: Number(budget_value),
         proposal_deadline: proposal_deadline ? new Date(proposal_deadline) : undefined,
         status: "DRAFT",
       },
@@ -81,6 +110,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ data: jobRequest }, { status: 201 });
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "خطأ في الخادم" }, { status: 500 });
   }
 }
