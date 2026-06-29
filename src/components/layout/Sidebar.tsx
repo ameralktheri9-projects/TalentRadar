@@ -19,6 +19,8 @@ const companyNav: NavItem[] = [
   { href: "/job-requests", label: "طلبات التوظيف", icon: "📋" },
   { href: "/agencies", label: "الوكالات", icon: "🏢" },
   { href: "/invoices", label: "الفواتير", icon: "💰" },
+  { href: "/candidates", label: "المرشحون", icon: "👥" },
+  { href: "/placements", label: "التعيينات", icon: "🎯" },
 ];
 
 const agencyNav: NavItem[] = [
