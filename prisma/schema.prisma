@@ -1,0 +1,415 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum IndustrySector {
+  TECHNOLOGY
+  HEALTHCARE
+  FINANCE
+  EDUCATION
+  RETAIL
+  MANUFACTURING
+  CONSTRUCTION
+  ENERGY
+  LOGISTICS
+  HOSPITALITY
+  MEDIA
+  GOVERNMENT
+  OTHER
+}
+
+enum SaudiCity {
+  RIYADH
+  JEDDAH
+  MECCA
+  MEDINA
+  DAMMAM
+  KHOBAR
+  DHAHRAN
+  TABUK
+  ABHA
+  TAIF
+  NAJRAN
+  JIZAN
+  HAIL
+  OTHER
+}
+
+enum CompanyStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+}
+
+enum CompanyUserRole {
+  HR_MANAGER
+  TA_LEAD
+  BU_MANAGER
+}
+
+enum UserStatus {
+  ACTIVE
+  INVITED
+  DEACTIVATED
+}
+
+enum ClientType {
+  ENTERPRISE
+  SME
+  STARTUP
+}
+
+enum SubscriptionTier {
+  FREE
+  BASIC
+  PRO
+  ELITE
+}
+
+enum AgencyStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  REJECTED
+}
+
+enum AgencyUserRole {
+  OWNER
+  RECRUITER
+  FINANCE
+}
+
+enum ExperienceLevel {
+  JUNIOR
+  MID
+  SENIOR
+  DIRECTOR
+  C_SUITE
+}
+
+enum BudgetType {
+  PERCENTAGE_OF_SALARY
+  FLAT_FEE
+}
+
+enum JobRequestStatus {
+  DRAFT
+  OPEN
+  CLOSED
+  FILLED
+  CANCELLED
+}
+
+enum FeeType {
+  PERCENTAGE
+  FLAT
+}
+
+enum ProposalStatus {
+  SUBMITTED
+  SHORTLISTED
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
+
+enum CandidateStatus {
+  SUBMITTED
+  VIEWED
+  SHORTLISTED
+  INTERVIEW_SCHEDULED
+  OFFER_MADE
+  HIRED
+  REJECTED
+}
+
+enum InterviewType {
+  PHONE
+  VIDEO
+  ONSITE
+}
+
+enum InterviewOutcome {
+  PENDING
+  PASSED
+  FAILED
+  NO_SHOW
+  CANCELLED
+}
+
+enum PlacementStatus {
+  OFFER_MADE
+  ACCEPTED
+  DECLINED
+  STARTED
+  GUARANTEE_BREACH
+  REPLACED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  PAID
+  DISPUTED
+  REFUNDED
+}
+
+enum BillingCycle {
+  MONTHLY
+  ANNUAL
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  EXPIRED
+}
+
+model Company {
+  id                   String          @id @default(uuid())
+  name_ar              String
+  name_en              String
+  cr_number            String          @unique
+  cr_verified          Boolean         @default(false)
+  industry_sector      IndustrySector
+  city                 SaudiCity
+  saudi_employee_count Int             @default(0)
+  total_employee_count Int             @default(0)
+  status               CompanyStatus   @default(PENDING)
+  created_at           DateTime        @default(now())
+
+  users                CompanyUser[]
+  job_requests         JobRequest[]
+  placements           Placement[]
+  invoices             Invoice[]
+}
+
+model CompanyUser {
+  id            String          @id @default(uuid())
+  company_id    String
+  full_name     String
+  email         String          @unique
+  password_hash String
+  role          CompanyUserRole
+  is_primary    Boolean         @default(false)
+  status        UserStatus      @default(INVITED)
+
+  company       Company         @relation(fields: [company_id], references: [id])
+  job_requests  JobRequest[]
+  interviews    Interview[]
+  ratings       Rating[]
+}
+
+model Agency {
+  id                    String           @id @default(uuid())
+  name_ar               String
+  name_en               String
+  hrsd_licence          String           @unique
+  hrsd_verified         Boolean          @default(false)
+  founded_year          Int?
+  team_size             Int              @default(1)
+  sector_tags           String[]
+  client_types          ClientType[]
+  subscription_tier     SubscriptionTier @default(FREE)
+  rating_avg            Float            @default(0)
+  total_placements      Int              @default(0)
+  avg_time_to_fill_days Float            @default(0)
+  fill_rate             Float            @default(0)
+  response_rate         Float            @default(0)
+  status                AgencyStatus     @default(PENDING)
+  created_at            DateTime         @default(now())
+
+  users                 AgencyUser[]
+  proposals             Proposal[]
+  candidate_submissions CandidateSubmission[]
+  placements            Placement[]
+  invoices              Invoice[]
+  ratings               Rating[]
+  subscriptions         Subscription[]
+}
+
+model AgencyUser {
+  id            String         @id @default(uuid())
+  agency_id     String
+  full_name     String
+  email         String         @unique
+  password_hash String
+  role          AgencyUserRole
+  status        UserStatus     @default(INVITED)
+
+  agency        Agency         @relation(fields: [agency_id], references: [id])
+  proposals     Proposal[]
+}
+
+model JobRequest {
+  id                    String           @id @default(uuid())
+  company_id            String
+  created_by            String
+  title                 String
+  description           String
+  sector                String
+  experience_level      ExperienceLevel
+  salary_min            Int
+  salary_max            Int
+  saudi_national_required Boolean        @default(false)
+  headcount             Int              @default(1)
+  sla_days              Int              @default(30)
+  budget_type           BudgetType
+  budget_value          Float
+  status                JobRequestStatus @default(DRAFT)
+  proposal_deadline     DateTime?
+  opened_at             DateTime?
+  closed_at             DateTime?
+  created_at            DateTime         @default(now())
+
+  company               Company          @relation(fields: [company_id], references: [id])
+  creator               CompanyUser      @relation(fields: [created_by], references: [id])
+  proposals             Proposal[]
+}
+
+model Proposal {
+  id                       String          @id @default(uuid())
+  job_request_id           String
+  agency_id                String
+  submitted_by             String
+  candidate_count_available Int            @default(0)
+  fee_type                 FeeType
+  fee_value                Float
+  timeline_days            Int
+  guarantee_days           Int             @default(90)
+  notes                    String?
+  status                   ProposalStatus  @default(SUBMITTED)
+  submitted_at             DateTime        @default(now())
+  responded_at             DateTime?
+
+  job_request              JobRequest      @relation(fields: [job_request_id], references: [id])
+  agency                   Agency          @relation(fields: [agency_id], references: [id])
+  submitter                AgencyUser      @relation(fields: [submitted_by], references: [id])
+  candidate_submissions    CandidateSubmission[]
+}
+
+model CandidateSubmission {
+  id               String          @id @default(uuid())
+  proposal_id      String
+  agency_id        String
+  anon_summary     String?
+  full_name        String
+  email            String
+  phone            String?
+  cv_url           String?
+  current_title    String?
+  years_experience Int             @default(0)
+  nationality      String?
+  is_saudi         Boolean         @default(false)
+  current_salary   Int?
+  expected_salary  Int?
+  status           CandidateStatus @default(SUBMITTED)
+  consent_given    Boolean         @default(false)
+  consent_at       DateTime?
+  created_at       DateTime        @default(now())
+
+  proposal         Proposal        @relation(fields: [proposal_id], references: [id])
+  agency           Agency          @relation(fields: [agency_id], references: [id])
+  interviews       Interview[]
+  placement        Placement?
+}
+
+model Interview {
+  id                      String           @id @default(uuid())
+  candidate_submission_id String
+  scheduled_by            String
+  interview_type          InterviewType
+  scheduled_at            DateTime
+  calendar_event_id       String?
+  outcome                 InterviewOutcome @default(PENDING)
+  feedback                String?
+  feedback_submitted_at   DateTime?
+  created_at              DateTime         @default(now())
+
+  candidate_submission    CandidateSubmission @relation(fields: [candidate_submission_id], references: [id])
+  scheduler               CompanyUser         @relation(fields: [scheduled_by], references: [id])
+}
+
+model Placement {
+  id                      String          @id @default(uuid())
+  candidate_submission_id String          @unique
+  company_id              String
+  agency_id               String
+  offer_amount            Int
+  offer_made_at           DateTime        @default(now())
+  offer_accepted_at       DateTime?
+  start_date              DateTime?
+  guarantee_end_date      DateTime?
+  status                  PlacementStatus @default(OFFER_MADE)
+
+  candidate_submission    CandidateSubmission @relation(fields: [candidate_submission_id], references: [id])
+  company                 Company             @relation(fields: [company_id], references: [id])
+  agency                  Agency              @relation(fields: [agency_id], references: [id])
+  invoice                 Invoice?
+  rating                  Rating?
+}
+
+model Invoice {
+  id            String        @id @default(uuid())
+  placement_id  String        @unique
+  company_id    String
+  agency_id     String
+  gross_amount  Float
+  platform_cut  Float
+  agency_payout Float
+  vat_amount    Float
+  total_amount  Float
+  status        InvoiceStatus @default(DRAFT)
+  due_date      DateTime?
+  paid_at       DateTime?
+  payment_ref   String?
+  created_at    DateTime      @default(now())
+
+  placement     Placement     @relation(fields: [placement_id], references: [id])
+  company       Company       @relation(fields: [company_id], references: [id])
+  agency        Agency        @relation(fields: [agency_id], references: [id])
+}
+
+model Rating {
+  id                   String      @id @default(uuid())
+  placement_id         String      @unique
+  rated_by             String
+  agency_id            String
+  score_speed          Int
+  score_quality        Int
+  score_professionalism Int
+  score_outcome        Int
+  overall_score        Float
+  comment              String?
+  created_at           DateTime    @default(now())
+
+  placement            Placement   @relation(fields: [placement_id], references: [id])
+  rater                CompanyUser @relation(fields: [rated_by], references: [id])
+  agency               Agency      @relation(fields: [agency_id], references: [id])
+}
+
+model Subscription {
+  id            String             @id @default(uuid())
+  agency_id     String
+  tier          SubscriptionTier
+  billing_cycle BillingCycle
+  price_sar     Float
+  started_at    DateTime           @default(now())
+  renews_at     DateTime?
+  status        SubscriptionStatus @default(ACTIVE)
+
+  agency        Agency             @relation(fields: [agency_id], references: [id])
+}
+
+model AdminUser {
+  id            String   @id @default(uuid())
+  full_name     String
+  email         String   @unique
+  password_hash String
+  created_at    DateTime @default(now())
+}
