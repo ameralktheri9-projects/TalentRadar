@@ -26,8 +26,8 @@ export default withAuth(
           return true;
         }
 
-        // API auth routes are public
-        if (pathname.startsWith("/api/auth")) {
+        // API auth routes and setup are public
+        if (pathname.startsWith("/api/auth") || pathname.startsWith("/api/setup")) {
           return true;
         }
 
