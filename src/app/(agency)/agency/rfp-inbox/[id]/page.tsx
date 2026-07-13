@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 // RFP detail page for agency — view full job request and submit/view proposal
 
 import { getServerSession } from "next-auth";
