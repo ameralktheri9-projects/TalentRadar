@@ -5,41 +5,297 @@ import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 const SECRET = process.env.SETUP_SECRET || "talenthunt-setup-2026";
 
-const MIGRATION_SQL = `
-CREATE TYPE IF NOT EXISTS "IndustrySector" AS ENUM ('TECHNOLOGY','HEALTHCARE','FINANCE','EDUCATION','RETAIL','MANUFACTURING','CONSTRUCTION','ENERGY','LOGISTICS','HOSPITALITY','MEDIA','GOVERNMENT','OTHER');
-CREATE TYPE IF NOT EXISTS "SaudiCity" AS ENUM ('RIYADH','JEDDAH','MECCA','MEDINA','DAMMAM','KHOBAR','DHAHRAN','TABUK','ABHA','TAIF','NAJRAN','JIZAN','HAIL','OTHER');
-CREATE TYPE IF NOT EXISTS "CompanyStatus" AS ENUM ('PENDING','ACTIVE','SUSPENDED');
-CREATE TYPE IF NOT EXISTS "CompanyUserRole" AS ENUM ('HR_MANAGER','TA_LEAD','BU_MANAGER');
-CREATE TYPE IF NOT EXISTS "UserStatus" AS ENUM ('ACTIVE','INVITED','DEACTIVATED');
-CREATE TYPE IF NOT EXISTS "ClientType" AS ENUM ('ENTERPRISE','SME','STARTUP');
-CREATE TYPE IF NOT EXISTS "SubscriptionTier" AS ENUM ('FREE','BASIC','PRO','ELITE');
-CREATE TYPE IF NOT EXISTS "AgencyStatus" AS ENUM ('PENDING','ACTIVE','SUSPENDED','REJECTED');
-CREATE TYPE IF NOT EXISTS "AgencyUserRole" AS ENUM ('OWNER','RECRUITER','FINANCE');
-CREATE TYPE IF NOT EXISTS "ExperienceLevel" AS ENUM ('JUNIOR','MID','SENIOR','DIRECTOR','C_SUITE');
-CREATE TYPE IF NOT EXISTS "BudgetType" AS ENUM ('PERCENTAGE_OF_SALARY','FLAT_FEE');
-CREATE TYPE IF NOT EXISTS "JobRequestStatus" AS ENUM ('DRAFT','OPEN','CLOSED','FILLED','CANCELLED');
-CREATE TYPE IF NOT EXISTS "FeeType" AS ENUM ('PERCENTAGE','FLAT');
-CREATE TYPE IF NOT EXISTS "ProposalStatus" AS ENUM ('SUBMITTED','SHORTLISTED','ACCEPTED','REJECTED','WITHDRAWN');
-CREATE TYPE IF NOT EXISTS "CandidateStatus" AS ENUM ('SUBMITTED','VIEWED','SHORTLISTED','INTERVIEW_SCHEDULED','OFFER_MADE','HIRED','REJECTED');
-CREATE TYPE IF NOT EXISTS "InterviewType" AS ENUM ('PHONE','VIDEO','ONSITE');
-CREATE TYPE IF NOT EXISTS "InterviewOutcome" AS ENUM ('PENDING','PASSED','FAILED','NO_SHOW','CANCELLED');
-CREATE TYPE IF NOT EXISTS "PlacementStatus" AS ENUM ('OFFER_MADE','ACCEPTED','DECLINED','STARTED','GUARANTEE_BREACH','REPLACED');
-CREATE TYPE IF NOT EXISTS "InvoiceStatus" AS ENUM ('DRAFT','ISSUED','PAID','DISPUTED','REFUNDED');
-CREATE TYPE IF NOT EXISTS "BillingCycle" AS ENUM ('MONTHLY','ANNUAL');
-CREATE TYPE IF NOT EXISTS "SubscriptionStatus" AS ENUM ('ACTIVE','CANCELLED','EXPIRED');
-CREATE TABLE IF NOT EXISTS "Company" ("id" TEXT NOT NULL,"name_ar" TEXT NOT NULL,"name_en" TEXT NOT NULL,"cr_number" TEXT NOT NULL,"cr_verified" BOOLEAN NOT NULL DEFAULT false,"industry_sector" "IndustrySector" NOT NULL,"city" "SaudiCity" NOT NULL,"saudi_employee_count" INTEGER NOT NULL DEFAULT 0,"total_employee_count" INTEGER NOT NULL DEFAULT 0,"status" "CompanyStatus" NOT NULL DEFAULT 'PENDING',"created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "Company_pkey" PRIMARY KEY ("id"));
-CREATE TABLE IF NOT EXISTS "CompanyUser" ("id" TEXT NOT NULL,"company_id" TEXT NOT NULL,"full_name" TEXT NOT NULL,"email" TEXT NOT NULL,"password_hash" TEXT NOT NULL,"role" "CompanyUserRole" NOT NULL,"is_primary" BOOLEAN NOT NULL DEFAULT false,"status" "UserStatus" NOT NULL DEFAULT 'INVITED',CONSTRAINT "CompanyUser_pkey" PRIMARY KEY ("id"));
-CREATE TABLE IF NOT EXISTS "Agency" ("id" TEXT NOT NULL,"name_ar" TEXT NOT NULL,"name_en" TEXT NOT NULL,"hrsd_licence" TEXT NOT NULL,"hrsd_verified" BOOLEAN NOT NULL DEFAULT false,"founded_year" INTEGER,"team_size" INTEGER NOT NULL DEFAULT 1,"sector_tags" TEXT[],"client_types" "ClientType"[],"subscription_tier" "SubscriptionTier" NOT NULL DEFAULT 'FREE',"rating_avg" DOUBLE PRECISION NOT NULL DEFAULT 0,"total_placements" INTEGER NOT NULL DEFAULT 0,"avg_time_to_fill_days" DOUBLE PRECISION NOT NULL DEFAULT 0,"fill_rate" DOUBLE PRECISION NOT NULL DEFAULT 0,"response_rate" DOUBLE PRECISION NOT NULL DEFAULT 0,"status" "AgencyStatus" NOT NULL DEFAULT 'PENDING',"created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "Agency_pkey" PRIMARY KEY ("id"));
-CREATE TABLE IF NOT EXISTS "AgencyUser" ("id" TEXT NOT NULL,"agency_id" TEXT NOT NULL,"full_name" TEXT NOT NULL,"email" TEXT NOT NULL,"password_hash" TEXT NOT NULL,"role" "AgencyUserRole" NOT NULL,"status" "UserStatus" NOT NULL DEFAULT 'INVITED',CONSTRAINT "AgencyUser_pkey" PRIMARY KEY ("id"));
-CREATE TABLE IF NOT EXISTS "JobRequest" ("id" TEXT NOT NULL,"company_id" TEXT NOT NULL,"created_by" TEXT NOT NULL,"title" TEXT NOT NULL,"description" TEXT NOT NULL,"sector" TEXT NOT NULL,"experience_level" "ExperienceLevel" NOT NULL,"salary_min" INTEGER NOT NULL,"salary_max" INTEGER NOT NULL,"saudi_national_required" BOOLEAN NOT NULL DEFAULT false,"headcount" INTEGER NOT NULL DEFAULT 1,"sla_days" INTEGER NOT NULL DEFAULT 30,"budget_type" "BudgetType" NOT NULL,"budget_value" DOUBLE PRECISION NOT NULL,"status" "JobRequestStatus" NOT NULL DEFAULT 'DRAFT',"proposal_deadline" TIMESTAMP(3),"opened_at" TIMESTAMP(3),"closed_at" TIMESTAMP(3),"created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "JobRequest_pkey" PRIMARY KEY ("id"));
-CREATE TABLE IF NOT EXISTS "Proposal" ("id" TEXT NOT NULL,"job_request_id" TEXT NOT NULL,"agency_id" TEXT NOT NULL,"submitted_by" TEXT NOT NULL,"candidate_count_available" INTEGER NOT NULL DEFAULT 0,"fee_type" "FeeType" NOT NULL,"fee_value" DOUBLE PRECISION NOT NULL,"timeline_days" INTEGER NOT NULL,"guarantee_days" INTEGER NOT NULL DEFAULT 90,"notes" TEXT,"status" "ProposalStatus" NOT NULL DEFAULT 'SUBMITTED',"submitted_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,"responded_at" TIMESTAMP(3),CONSTRAINT "Proposal_pkey" PRIMARY KEY ("id"));
-CREATE TABLE IF NOT EXISTS "CandidateSubmission" ("id" TEXT NOT NULL,"proposal_id" TEXT NOT NULL,"agency_id" TEXT NOT NULL,"anon_summary" TEXT,"full_name" TEXT NOT NULL,"email" TEXT NOT NULL,"phone" TEXT,"cv_url" TEXT,"current_title" TEXT,"years_experience" INTEGER NOT NULL DEFAULT 0,"nationality" TEXT,"is_saudi" BOOLEAN NOT NULL DEFAULT false,"current_salary" INTEGER,"expected_salary" INTEGER,"status" "CandidateStatus" NOT NULL DEFAULT 'SUBMITTED',"consent_given" BOOLEAN NOT NULL DEFAULT false,"consent_at" TIMESTAMP(3),"created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "CandidateSubmission_pkey" PRIMARY KEY ("id"));
-CREATE TABLE IF NOT EXISTS "Interview" ("id" TEXT NOT NULL,"candidate_submission_id" TEXT NOT NULL,"scheduled_by" TEXT NOT NULL,"interview_type" "InterviewType" NOT NULL,"scheduled_at" TIMESTAMP(3) NOT NULL,"calendar_event_id" TEXT,"outcome" "InterviewOutcome" NOT NULL DEFAULT 'PENDING',"feedback" TEXT,"feedback_submitted_at" TIMESTAMP(3),"created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "Interview_pkey" PRIMARY KEY ("id"));
-CREATE TABLE IF NOT EXISTS "Placement" ("id" TEXT NOT NULL,"candidate_submission_id" TEXT NOT NULL,"company_id" TEXT NOT NULL,"agency_id" TEXT NOT NULL,"offer_amount" INTEGER NOT NULL,"offer_made_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,"offer_accepted_at" TIMESTAMP(3),"start_date" TIMESTAMP(3),"guarantee_end_date" TIMESTAMP(3),"status" "PlacementStatus" NOT NULL DEFAULT 'OFFER_MADE',CONSTRAINT "Placement_pkey" PRIMARY KEY ("id"));
-CREATE TABLE IF NOT EXISTS "Invoice" ("id" TEXT NOT NULL,"placement_id" TEXT NOT NULL,"company_id" TEXT NOT NULL,"agency_id" TEXT NOT NULL,"gross_amount" DOUBLE PRECISION NOT NULL,"platform_cut" DOUBLE PRECISION NOT NULL,"agency_payout" DOUBLE PRECISION NOT NULL,"vat_amount" DOUBLE PRECISION NOT NULL,"total_amount" DOUBLE PRECISION NOT NULL,"status" "InvoiceStatus" NOT NULL DEFAULT 'DRAFT',"due_date" TIMESTAMP(3),"paid_at" TIMESTAMP(3),"payment_ref" TEXT,"created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "Invoice_pkey" PRIMARY KEY ("id"));
-CREATE TABLE IF NOT EXISTS "Rating" ("id" TEXT NOT NULL,"placement_id" TEXT NOT NULL,"rated_by" TEXT NOT NULL,"agency_id" TEXT NOT NULL,"score_speed" INTEGER NOT NULL,"score_quality" INTEGER NOT NULL,"score_professionalism" INTEGER NOT NULL,"score_outcome" INTEGER NOT NULL,"overall_score" DOUBLE PRECISION NOT NULL,"comment" TEXT,"created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "Rating_pkey" PRIMARY KEY ("id"));
-CREATE TABLE IF NOT EXISTS "Subscription" ("id" TEXT NOT NULL,"agency_id" TEXT NOT NULL,"tier" "SubscriptionTier" NOT NULL,"billing_cycle" "BillingCycle" NOT NULL,"price_sar" DOUBLE PRECISION NOT NULL,"started_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,"renews_at" TIMESTAMP(3),"status" "SubscriptionStatus" NOT NULL DEFAULT 'ACTIVE',CONSTRAINT "Subscription_pkey" PRIMARY KEY ("id"));
-CREATE TABLE IF NOT EXISTS "AdminUser" ("id" TEXT NOT NULL,"full_name" TEXT NOT NULL,"email" TEXT NOT NULL,"password_hash" TEXT NOT NULL,"created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "AdminUser_pkey" PRIMARY KEY ("id"));
+// PostgreSQL doesn't support CREATE TYPE IF NOT EXISTS — use DO block instead
+const ENUM_SQL = `
+DO $$ BEGIN
+  CREATE TYPE "IndustrySector" AS ENUM ('TECHNOLOGY','HEALTHCARE','FINANCE','EDUCATION','RETAIL','MANUFACTURING','CONSTRUCTION','ENERGY','LOGISTICS','HOSPITALITY','MEDIA','GOVERNMENT','OTHER');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "SaudiCity" AS ENUM ('RIYADH','JEDDAH','MECCA','MEDINA','DAMMAM','KHOBAR','DHAHRAN','TABUK','ABHA','TAIF','NAJRAN','JIZAN','HAIL','OTHER');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "CompanyStatus" AS ENUM ('PENDING','ACTIVE','SUSPENDED');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "CompanyUserRole" AS ENUM ('HR_MANAGER','TA_LEAD','BU_MANAGER');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "UserStatus" AS ENUM ('ACTIVE','INVITED','DEACTIVATED');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "ClientType" AS ENUM ('ENTERPRISE','SME','STARTUP');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "SubscriptionTier" AS ENUM ('FREE','BASIC','PRO','ELITE');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "AgencyStatus" AS ENUM ('PENDING','ACTIVE','SUSPENDED','REJECTED');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "AgencyUserRole" AS ENUM ('OWNER','RECRUITER','FINANCE');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "ExperienceLevel" AS ENUM ('JUNIOR','MID','SENIOR','DIRECTOR','C_SUITE');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "BudgetType" AS ENUM ('PERCENTAGE_OF_SALARY','FLAT_FEE');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "JobRequestStatus" AS ENUM ('DRAFT','OPEN','CLOSED','FILLED','CANCELLED');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "FeeType" AS ENUM ('PERCENTAGE','FLAT');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "ProposalStatus" AS ENUM ('SUBMITTED','SHORTLISTED','ACCEPTED','REJECTED','WITHDRAWN');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "CandidateStatus" AS ENUM ('SUBMITTED','VIEWED','SHORTLISTED','INTERVIEW_SCHEDULED','OFFER_MADE','HIRED','REJECTED');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "InterviewType" AS ENUM ('PHONE','VIDEO','ONSITE');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "InterviewOutcome" AS ENUM ('PENDING','PASSED','FAILED','NO_SHOW','CANCELLED');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "PlacementStatus" AS ENUM ('OFFER_MADE','ACCEPTED','DECLINED','STARTED','GUARANTEE_BREACH','REPLACED');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "InvoiceStatus" AS ENUM ('DRAFT','ISSUED','PAID','DISPUTED','REFUNDED');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "BillingCycle" AS ENUM ('MONTHLY','ANNUAL');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "SubscriptionStatus" AS ENUM ('ACTIVE','CANCELLED','EXPIRED');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+`;
+
+const TABLES_SQL = `
+CREATE TABLE IF NOT EXISTS "Company" (
+  "id" TEXT NOT NULL,
+  "name_ar" TEXT NOT NULL,
+  "name_en" TEXT NOT NULL,
+  "cr_number" TEXT NOT NULL,
+  "cr_verified" BOOLEAN NOT NULL DEFAULT false,
+  "industry_sector" "IndustrySector" NOT NULL,
+  "city" "SaudiCity" NOT NULL,
+  "saudi_employee_count" INTEGER NOT NULL DEFAULT 0,
+  "total_employee_count" INTEGER NOT NULL DEFAULT 0,
+  "status" "CompanyStatus" NOT NULL DEFAULT 'PENDING',
+  "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "Company_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "CompanyUser" (
+  "id" TEXT NOT NULL,
+  "company_id" TEXT NOT NULL,
+  "full_name" TEXT NOT NULL,
+  "email" TEXT NOT NULL,
+  "password_hash" TEXT NOT NULL,
+  "role" "CompanyUserRole" NOT NULL,
+  "is_primary" BOOLEAN NOT NULL DEFAULT false,
+  "status" "UserStatus" NOT NULL DEFAULT 'INVITED',
+  CONSTRAINT "CompanyUser_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "Agency" (
+  "id" TEXT NOT NULL,
+  "name_ar" TEXT NOT NULL,
+  "name_en" TEXT NOT NULL,
+  "hrsd_licence" TEXT NOT NULL,
+  "hrsd_verified" BOOLEAN NOT NULL DEFAULT false,
+  "founded_year" INTEGER,
+  "team_size" INTEGER NOT NULL DEFAULT 1,
+  "sector_tags" TEXT[],
+  "client_types" "ClientType"[],
+  "subscription_tier" "SubscriptionTier" NOT NULL DEFAULT 'FREE',
+  "rating_avg" DOUBLE PRECISION NOT NULL DEFAULT 0,
+  "total_placements" INTEGER NOT NULL DEFAULT 0,
+  "avg_time_to_fill_days" DOUBLE PRECISION NOT NULL DEFAULT 0,
+  "fill_rate" DOUBLE PRECISION NOT NULL DEFAULT 0,
+  "response_rate" DOUBLE PRECISION NOT NULL DEFAULT 0,
+  "status" "AgencyStatus" NOT NULL DEFAULT 'PENDING',
+  "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "Agency_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "AgencyUser" (
+  "id" TEXT NOT NULL,
+  "agency_id" TEXT NOT NULL,
+  "full_name" TEXT NOT NULL,
+  "email" TEXT NOT NULL,
+  "password_hash" TEXT NOT NULL,
+  "role" "AgencyUserRole" NOT NULL,
+  "status" "UserStatus" NOT NULL DEFAULT 'INVITED',
+  CONSTRAINT "AgencyUser_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "JobRequest" (
+  "id" TEXT NOT NULL,
+  "company_id" TEXT NOT NULL,
+  "created_by" TEXT NOT NULL,
+  "title" TEXT NOT NULL,
+  "description" TEXT NOT NULL,
+  "sector" TEXT NOT NULL,
+  "experience_level" "ExperienceLevel" NOT NULL,
+  "salary_min" INTEGER NOT NULL,
+  "salary_max" INTEGER NOT NULL,
+  "saudi_national_required" BOOLEAN NOT NULL DEFAULT false,
+  "headcount" INTEGER NOT NULL DEFAULT 1,
+  "sla_days" INTEGER NOT NULL DEFAULT 30,
+  "budget_type" "BudgetType" NOT NULL,
+  "budget_value" DOUBLE PRECISION NOT NULL,
+  "status" "JobRequestStatus" NOT NULL DEFAULT 'DRAFT',
+  "proposal_deadline" TIMESTAMP(3),
+  "opened_at" TIMESTAMP(3),
+  "closed_at" TIMESTAMP(3),
+  "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "JobRequest_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "Proposal" (
+  "id" TEXT NOT NULL,
+  "job_request_id" TEXT NOT NULL,
+  "agency_id" TEXT NOT NULL,
+  "submitted_by" TEXT NOT NULL,
+  "candidate_count_available" INTEGER NOT NULL DEFAULT 0,
+  "fee_type" "FeeType" NOT NULL,
+  "fee_value" DOUBLE PRECISION NOT NULL,
+  "timeline_days" INTEGER NOT NULL,
+  "guarantee_days" INTEGER NOT NULL DEFAULT 90,
+  "notes" TEXT,
+  "status" "ProposalStatus" NOT NULL DEFAULT 'SUBMITTED',
+  "submitted_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "responded_at" TIMESTAMP(3),
+  CONSTRAINT "Proposal_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "CandidateSubmission" (
+  "id" TEXT NOT NULL,
+  "proposal_id" TEXT NOT NULL,
+  "agency_id" TEXT NOT NULL,
+  "anon_summary" TEXT,
+  "full_name" TEXT NOT NULL,
+  "email" TEXT NOT NULL,
+  "phone" TEXT,
+  "cv_url" TEXT,
+  "current_title" TEXT,
+  "years_experience" INTEGER NOT NULL DEFAULT 0,
+  "nationality" TEXT,
+  "is_saudi" BOOLEAN NOT NULL DEFAULT false,
+  "current_salary" INTEGER,
+  "expected_salary" INTEGER,
+  "status" "CandidateStatus" NOT NULL DEFAULT 'SUBMITTED',
+  "consent_given" BOOLEAN NOT NULL DEFAULT false,
+  "consent_at" TIMESTAMP(3),
+  "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "CandidateSubmission_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "Interview" (
+  "id" TEXT NOT NULL,
+  "candidate_submission_id" TEXT NOT NULL,
+  "scheduled_by" TEXT NOT NULL,
+  "interview_type" "InterviewType" NOT NULL,
+  "scheduled_at" TIMESTAMP(3) NOT NULL,
+  "calendar_event_id" TEXT,
+  "outcome" "InterviewOutcome" NOT NULL DEFAULT 'PENDING',
+  "feedback" TEXT,
+  "feedback_submitted_at" TIMESTAMP(3),
+  "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "Interview_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "Placement" (
+  "id" TEXT NOT NULL,
+  "candidate_submission_id" TEXT NOT NULL,
+  "company_id" TEXT NOT NULL,
+  "agency_id" TEXT NOT NULL,
+  "offer_amount" INTEGER NOT NULL,
+  "offer_made_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "offer_accepted_at" TIMESTAMP(3),
+  "start_date" TIMESTAMP(3),
+  "guarantee_end_date" TIMESTAMP(3),
+  "status" "PlacementStatus" NOT NULL DEFAULT 'OFFER_MADE',
+  CONSTRAINT "Placement_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "Invoice" (
+  "id" TEXT NOT NULL,
+  "placement_id" TEXT NOT NULL,
+  "company_id" TEXT NOT NULL,
+  "agency_id" TEXT NOT NULL,
+  "gross_amount" DOUBLE PRECISION NOT NULL,
+  "platform_cut" DOUBLE PRECISION NOT NULL,
+  "agency_payout" DOUBLE PRECISION NOT NULL,
+  "vat_amount" DOUBLE PRECISION NOT NULL,
+  "total_amount" DOUBLE PRECISION NOT NULL,
+  "status" "InvoiceStatus" NOT NULL DEFAULT 'DRAFT',
+  "due_date" TIMESTAMP(3),
+  "paid_at" TIMESTAMP(3),
+  "payment_ref" TEXT,
+  "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "Invoice_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "Rating" (
+  "id" TEXT NOT NULL,
+  "placement_id" TEXT NOT NULL,
+  "rated_by" TEXT NOT NULL,
+  "agency_id" TEXT NOT NULL,
+  "score_speed" INTEGER NOT NULL,
+  "score_quality" INTEGER NOT NULL,
+  "score_professionalism" INTEGER NOT NULL,
+  "score_outcome" INTEGER NOT NULL,
+  "overall_score" DOUBLE PRECISION NOT NULL,
+  "comment" TEXT,
+  "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "Rating_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "Subscription" (
+  "id" TEXT NOT NULL,
+  "agency_id" TEXT NOT NULL,
+  "tier" "SubscriptionTier" NOT NULL,
+  "billing_cycle" "BillingCycle" NOT NULL,
+  "price_sar" DOUBLE PRECISION NOT NULL,
+  "started_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "renews_at" TIMESTAMP(3),
+  "status" "SubscriptionStatus" NOT NULL DEFAULT 'ACTIVE',
+  CONSTRAINT "Subscription_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "AdminUser" (
+  "id" TEXT NOT NULL,
+  "full_name" TEXT NOT NULL,
+  "email" TEXT NOT NULL,
+  "password_hash" TEXT NOT NULL,
+  "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "AdminUser_pkey" PRIMARY KEY ("id")
+);
+
 CREATE UNIQUE INDEX IF NOT EXISTS "Company_cr_number_key" ON "Company"("cr_number");
 CREATE UNIQUE INDEX IF NOT EXISTS "CompanyUser_email_key" ON "CompanyUser"("email");
 CREATE UNIQUE INDEX IF NOT EXISTS "Agency_hrsd_licence_key" ON "Agency"("hrsd_licence");
@@ -50,6 +306,30 @@ CREATE UNIQUE INDEX IF NOT EXISTS "Rating_placement_id_key" ON "Rating"("placeme
 CREATE UNIQUE INDEX IF NOT EXISTS "AdminUser_email_key" ON "AdminUser"("email");
 `;
 
+const FOREIGN_KEYS = [
+  `ALTER TABLE "CompanyUser" ADD CONSTRAINT "CompanyUser_company_id_fkey" FOREIGN KEY ("company_id") REFERENCES "Company"("id") ON DELETE RESTRICT ON UPDATE CASCADE`,
+  `ALTER TABLE "AgencyUser" ADD CONSTRAINT "AgencyUser_agency_id_fkey" FOREIGN KEY ("agency_id") REFERENCES "Agency"("id") ON DELETE RESTRICT ON UPDATE CASCADE`,
+  `ALTER TABLE "JobRequest" ADD CONSTRAINT "JobRequest_company_id_fkey" FOREIGN KEY ("company_id") REFERENCES "Company"("id") ON DELETE RESTRICT ON UPDATE CASCADE`,
+  `ALTER TABLE "JobRequest" ADD CONSTRAINT "JobRequest_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "CompanyUser"("id") ON DELETE RESTRICT ON UPDATE CASCADE`,
+  `ALTER TABLE "Proposal" ADD CONSTRAINT "Proposal_job_request_id_fkey" FOREIGN KEY ("job_request_id") REFERENCES "JobRequest"("id") ON DELETE RESTRICT ON UPDATE CASCADE`,
+  `ALTER TABLE "Proposal" ADD CONSTRAINT "Proposal_agency_id_fkey" FOREIGN KEY ("agency_id") REFERENCES "Agency"("id") ON DELETE RESTRICT ON UPDATE CASCADE`,
+  `ALTER TABLE "Proposal" ADD CONSTRAINT "Proposal_submitted_by_fkey" FOREIGN KEY ("submitted_by") REFERENCES "AgencyUser"("id") ON DELETE RESTRICT ON UPDATE CASCADE`,
+  `ALTER TABLE "CandidateSubmission" ADD CONSTRAINT "CandidateSubmission_proposal_id_fkey" FOREIGN KEY ("proposal_id") REFERENCES "Proposal"("id") ON DELETE RESTRICT ON UPDATE CASCADE`,
+  `ALTER TABLE "CandidateSubmission" ADD CONSTRAINT "CandidateSubmission_agency_id_fkey" FOREIGN KEY ("agency_id") REFERENCES "Agency"("id") ON DELETE RESTRICT ON UPDATE CASCADE`,
+  `ALTER TABLE "Interview" ADD CONSTRAINT "Interview_candidate_submission_id_fkey" FOREIGN KEY ("candidate_submission_id") REFERENCES "CandidateSubmission"("id") ON DELETE RESTRICT ON UPDATE CASCADE`,
+  `ALTER TABLE "Interview" ADD CONSTRAINT "Interview_scheduled_by_fkey" FOREIGN KEY ("scheduled_by") REFERENCES "CompanyUser"("id") ON DELETE RESTRICT ON UPDATE CASCADE`,
+  `ALTER TABLE "Placement" ADD CONSTRAINT "Placement_candidate_submission_id_fkey" FOREIGN KEY ("candidate_submission_id") REFERENCES "CandidateSubmission"("id") ON DELETE RESTRICT ON UPDATE CASCADE`,
+  `ALTER TABLE "Placement" ADD CONSTRAINT "Placement_company_id_fkey" FOREIGN KEY ("company_id") REFERENCES "Company"("id") ON DELETE RESTRICT ON UPDATE CASCADE`,
+  `ALTER TABLE "Placement" ADD CONSTRAINT "Placement_agency_id_fkey" FOREIGN KEY ("agency_id") REFERENCES "Agency"("id") ON DELETE RESTRICT ON UPDATE CASCADE`,
+  `ALTER TABLE "Invoice" ADD CONSTRAINT "Invoice_placement_id_fkey" FOREIGN KEY ("placement_id") REFERENCES "Placement"("id") ON DELETE RESTRICT ON UPDATE CASCADE`,
+  `ALTER TABLE "Invoice" ADD CONSTRAINT "Invoice_company_id_fkey" FOREIGN KEY ("company_id") REFERENCES "Company"("id") ON DELETE RESTRICT ON UPDATE CASCADE`,
+  `ALTER TABLE "Invoice" ADD CONSTRAINT "Invoice_agency_id_fkey" FOREIGN KEY ("agency_id") REFERENCES "Agency"("id") ON DELETE RESTRICT ON UPDATE CASCADE`,
+  `ALTER TABLE "Rating" ADD CONSTRAINT "Rating_placement_id_fkey" FOREIGN KEY ("placement_id") REFERENCES "Placement"("id") ON DELETE RESTRICT ON UPDATE CASCADE`,
+  `ALTER TABLE "Rating" ADD CONSTRAINT "Rating_rated_by_fkey" FOREIGN KEY ("rated_by") REFERENCES "CompanyUser"("id") ON DELETE RESTRICT ON UPDATE CASCADE`,
+  `ALTER TABLE "Rating" ADD CONSTRAINT "Rating_agency_id_fkey" FOREIGN KEY ("agency_id") REFERENCES "Agency"("id") ON DELETE RESTRICT ON UPDATE CASCADE`,
+  `ALTER TABLE "Subscription" ADD CONSTRAINT "Subscription_agency_id_fkey" FOREIGN KEY ("agency_id") REFERENCES "Agency"("id") ON DELETE RESTRICT ON UPDATE CASCADE`,
+];
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   if (searchParams.get("secret") !== SECRET) {
@@ -57,50 +337,24 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Run schema creation via raw SQL (works on Vercel serverless)
-    const statements = MIGRATION_SQL.split(";").map(s => s.trim()).filter(s => s.length > 0);
-    for (const stmt of statements) {
+    // Step 1: Create enums using DO blocks (handles duplicates gracefully)
+    await prisma.$executeRawUnsafe(ENUM_SQL);
+
+    // Step 2: Create tables (IF NOT EXISTS is safe)
+    await prisma.$executeRawUnsafe(TABLES_SQL);
+
+    // Step 3: Add foreign keys (ignore if already exist)
+    for (const fk of FOREIGN_KEYS) {
       try {
-        await prisma.$executeRawUnsafe(stmt + ";");
+        await prisma.$executeRawUnsafe(fk + ";");
       } catch {
-        // Skip if already exists
+        // Already exists — safe to ignore
       }
     }
 
-    // Add foreign keys separately (ignore if already exist)
-    const foreignKeys = [
-      `ALTER TABLE "CompanyUser" ADD CONSTRAINT "CompanyUser_company_id_fkey" FOREIGN KEY ("company_id") REFERENCES "Company"("id") ON DELETE RESTRICT ON UPDATE CASCADE`,
-      `ALTER TABLE "AgencyUser" ADD CONSTRAINT "AgencyUser_agency_id_fkey" FOREIGN KEY ("agency_id") REFERENCES "Agency"("id") ON DELETE RESTRICT ON UPDATE CASCADE`,
-      `ALTER TABLE "JobRequest" ADD CONSTRAINT "JobRequest_company_id_fkey" FOREIGN KEY ("company_id") REFERENCES "Company"("id") ON DELETE RESTRICT ON UPDATE CASCADE`,
-      `ALTER TABLE "JobRequest" ADD CONSTRAINT "JobRequest_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "CompanyUser"("id") ON DELETE RESTRICT ON UPDATE CASCADE`,
-      `ALTER TABLE "Proposal" ADD CONSTRAINT "Proposal_job_request_id_fkey" FOREIGN KEY ("job_request_id") REFERENCES "JobRequest"("id") ON DELETE RESTRICT ON UPDATE CASCADE`,
-      `ALTER TABLE "Proposal" ADD CONSTRAINT "Proposal_agency_id_fkey" FOREIGN KEY ("agency_id") REFERENCES "Agency"("id") ON DELETE RESTRICT ON UPDATE CASCADE`,
-      `ALTER TABLE "Proposal" ADD CONSTRAINT "Proposal_submitted_by_fkey" FOREIGN KEY ("submitted_by") REFERENCES "AgencyUser"("id") ON DELETE RESTRICT ON UPDATE CASCADE`,
-      `ALTER TABLE "CandidateSubmission" ADD CONSTRAINT "CandidateSubmission_proposal_id_fkey" FOREIGN KEY ("proposal_id") REFERENCES "Proposal"("id") ON DELETE RESTRICT ON UPDATE CASCADE`,
-      `ALTER TABLE "CandidateSubmission" ADD CONSTRAINT "CandidateSubmission_agency_id_fkey" FOREIGN KEY ("agency_id") REFERENCES "Agency"("id") ON DELETE RESTRICT ON UPDATE CASCADE`,
-      `ALTER TABLE "Interview" ADD CONSTRAINT "Interview_candidate_submission_id_fkey" FOREIGN KEY ("candidate_submission_id") REFERENCES "CandidateSubmission"("id") ON DELETE RESTRICT ON UPDATE CASCADE`,
-      `ALTER TABLE "Interview" ADD CONSTRAINT "Interview_scheduled_by_fkey" FOREIGN KEY ("scheduled_by") REFERENCES "CompanyUser"("id") ON DELETE RESTRICT ON UPDATE CASCADE`,
-      `ALTER TABLE "Placement" ADD CONSTRAINT "Placement_candidate_submission_id_fkey" FOREIGN KEY ("candidate_submission_id") REFERENCES "CandidateSubmission"("id") ON DELETE RESTRICT ON UPDATE CASCADE`,
-      `ALTER TABLE "Placement" ADD CONSTRAINT "Placement_company_id_fkey" FOREIGN KEY ("company_id") REFERENCES "Company"("id") ON DELETE RESTRICT ON UPDATE CASCADE`,
-      `ALTER TABLE "Placement" ADD CONSTRAINT "Placement_agency_id_fkey" FOREIGN KEY ("agency_id") REFERENCES "Agency"("id") ON DELETE RESTRICT ON UPDATE CASCADE`,
-      `ALTER TABLE "Invoice" ADD CONSTRAINT "Invoice_placement_id_fkey" FOREIGN KEY ("placement_id") REFERENCES "Placement"("id") ON DELETE RESTRICT ON UPDATE CASCADE`,
-      `ALTER TABLE "Invoice" ADD CONSTRAINT "Invoice_company_id_fkey" FOREIGN KEY ("company_id") REFERENCES "Company"("id") ON DELETE RESTRICT ON UPDATE CASCADE`,
-      `ALTER TABLE "Invoice" ADD CONSTRAINT "Invoice_agency_id_fkey" FOREIGN KEY ("agency_id") REFERENCES "Agency"("id") ON DELETE RESTRICT ON UPDATE CASCADE`,
-      `ALTER TABLE "Rating" ADD CONSTRAINT "Rating_placement_id_fkey" FOREIGN KEY ("placement_id") REFERENCES "Placement"("id") ON DELETE RESTRICT ON UPDATE CASCADE`,
-      `ALTER TABLE "Rating" ADD CONSTRAINT "Rating_rated_by_fkey" FOREIGN KEY ("rated_by") REFERENCES "CompanyUser"("id") ON DELETE RESTRICT ON UPDATE CASCADE`,
-      `ALTER TABLE "Rating" ADD CONSTRAINT "Rating_agency_id_fkey" FOREIGN KEY ("agency_id") REFERENCES "Agency"("id") ON DELETE RESTRICT ON UPDATE CASCADE`,
-      `ALTER TABLE "Subscription" ADD CONSTRAINT "Subscription_agency_id_fkey" FOREIGN KEY ("agency_id") REFERENCES "Agency"("id") ON DELETE RESTRICT ON UPDATE CASCADE`,
-    ];
-    for (const fk of foreignKeys) {
-      try { await prisma.$executeRawUnsafe(fk + ";"); } catch { /* already exists */ }
-    }
+    const results: string[] = ["✅ Schema created"];
 
-    // Connect and seed
-    await prisma.$connect();
-
-    const results: string[] = [];
-
-    // Seed Admin
+    // Step 4: Seed Admin
     const adminExists = await prisma.adminUser.findUnique({ where: { email: "admin@talenthunt.sa" } });
     if (!adminExists) {
       await prisma.adminUser.create({
@@ -271,7 +525,7 @@ export async function GET(request: NextRequest) {
     // Seed Agency 3
     const agency3Exists = await prisma.agency.findUnique({ where: { hrsd_licence: "HRSD-2020-009999" } });
     if (!agency3Exists) {
-      const agency3 = await prisma.agency.create({
+      await prisma.agency.create({
         data: {
           name_ar: "رواد الكفاءات",
           name_en: "Competency Pioneers",
@@ -292,7 +546,7 @@ export async function GET(request: NextRequest) {
       });
       await prisma.agencyUser.create({
         data: {
-          agency_id: agency3.id,
+          agency_id: (await prisma.agency.findUnique({ where: { hrsd_licence: "HRSD-2020-009999" } }))!.id,
           full_name: "فيصل الدوسري",
           email: "owner@competencypioneer.sa",
           password_hash: await bcrypt.hash("agency123", 12),
@@ -307,7 +561,7 @@ export async function GET(request: NextRequest) {
 
     // Seed Job Request
     const companyUser = await prisma.companyUser.findUnique({ where: { email: "hr@horizontech.sa" } });
-    if (companyUser) {
+    if (companyUser && company1) {
       const existingJR = await prisma.jobRequest.findFirst({ where: { company_id: company1.id } });
       if (!existingJR) {
         const deadline = new Date();
@@ -333,7 +587,6 @@ export async function GET(request: NextRequest) {
           },
         });
 
-        // Seed Proposal
         if (agency1) {
           const agencyUser = await prisma.agencyUser.findUnique({ where: { email: "owner@eliterecruitment.sa" } });
           if (agencyUser) {
@@ -353,7 +606,6 @@ export async function GET(request: NextRequest) {
               },
             });
 
-            // Seed Candidate
             await prisma.candidateSubmission.create({
               data: {
                 proposal_id: proposal.id,
@@ -381,8 +633,6 @@ export async function GET(request: NextRequest) {
         results.push("⏭ Job request already exists");
       }
     }
-
-    await prisma.$disconnect();
 
     return NextResponse.json({
       success: true,
