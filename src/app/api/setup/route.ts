@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import { execSync } from "child_process";
 
 const SECRET = process.env.SETUP_SECRET || "talenthunt-setup-2026";
 
@@ -13,6 +14,16 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    // Run database migrations first
+    try {
+      execSync("npx prisma migrate deploy", {
+        env: { ...process.env },
+        stdio: "pipe",
+      });
+    } catch (migrateError) {
+      // Migrations may already be applied — continue
+    }
+
     // Test connection
     await prisma.$connect();
 
