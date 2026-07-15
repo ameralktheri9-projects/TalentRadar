@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { authOptions, AuthUser } from "@/lib/auth";
 import { JobRequestStatus } from "@prisma/client";
+import { scoreAllAgenciesForJob } from "@/lib/matching";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -107,6 +108,9 @@ export async function POST(req: NextRequest) {
         status: "DRAFT",
       },
     });
+
+    // Score all agencies non-blocking
+    scoreAllAgenciesForJob(jobRequest.id).catch(console.error);
 
     return NextResponse.json({ data: jobRequest }, { status: 201 });
   } catch (error) {

@@ -28,6 +28,7 @@ const agencyNav: NavItem[] = [
   { href: "/agency/rfp-inbox", label: "صندوق الطلبات", icon: "📥" },
   { href: "/agency/candidates", label: "المرشحون", icon: "👥" },
   { href: "/agency/commissions", label: "العمولات", icon: "💵" },
+  { href: "/agency/analytics", label: "التحليلات", icon: "📊" },
 ];
 
 const adminNav: NavItem[] = [

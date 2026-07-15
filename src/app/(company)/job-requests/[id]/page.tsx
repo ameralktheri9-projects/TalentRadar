@@ -88,6 +88,20 @@ export default async function JobRequestDetailPage({ params, searchParams }: Pag
     p.candidate_submissions.map((c) => ({ ...c, proposalStatus: p.status }))
   );
 
+  // Fetch match scores for this job request
+  const rawMatchScores = await prisma.matchScore.findMany({
+    where: { jobRequestId: params.id },
+    orderBy: { score: "desc" },
+    take: 5,
+  });
+  const matchAgencyIds = rawMatchScores.map((s) => s.agencyId);
+  const matchAgencies = await prisma.agency.findMany({
+    where: { id: { in: matchAgencyIds } },
+    select: { id: true, name_ar: true, rating_avg: true, total_placements: true, fill_rate: true },
+  });
+  const matchAgencyMap = Object.fromEntries(matchAgencies.map((a) => [a.id, a]));
+  const matchScores = rawMatchScores.map((s) => ({ ...s, agency: matchAgencyMap[s.agencyId] ?? null }));
+
   return (
     <div>
       <Header title={jobRequest.title} subtitle="تفاصيل طلب التوظيف" />
@@ -272,6 +286,79 @@ export default async function JobRequestDetailPage({ params, searchParams }: Pag
                   })}
                 </div>
               )}
+            </div>
+          )}
+        </div>
+
+        {/* Suggested Agencies — Match Scores */}
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden" dir="rtl">
+          <div className="p-5 border-b border-gray-100">
+            <h2 className="font-semibold text-gray-800">الوكالات المقترحة</h2>
+            <p className="text-xs text-gray-400 mt-0.5">ترتيب حسب درجة التطابق مع هذا الطلب</p>
+          </div>
+          {matchScores.length === 0 ? (
+            <div className="p-8 text-center text-gray-400 text-sm">
+              سيتم احتساب التطابق عند فتح الطلب
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-50">
+              {matchScores.map((ms) => {
+                const bd = ms.breakdown as {
+                  sectorMatch: number;
+                  ratingScore: number;
+                  responseTimeScore: number;
+                  pastPlacementsScore: number;
+                  feeScore: number;
+                };
+                return (
+                  <div key={ms.agencyId} className="p-5">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <p className="font-semibold text-gray-900">{ms.agency.name_ar}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          تقييم: {ms.agency.rating_avg > 0 ? `★ ${ms.agency.rating_avg.toFixed(1)}` : "—"} ·
+                          توظيفات: {ms.agency.total_placements} ·
+                          معدل الإنجاز: {Math.round(ms.agency.fill_rate * 100)}%
+                        </p>
+                      </div>
+                      <div className="text-left">
+                        <span className="text-2xl font-bold text-blue-600">{ms.score}</span>
+                        <span className="text-gray-400 text-sm">/100</span>
+                      </div>
+                    </div>
+                    {/* Score bar */}
+                    <div className="w-full bg-gray-100 rounded-full h-2 mb-3">
+                      <div
+                        className="bg-blue-500 rounded-full h-2 transition-all"
+                        style={{ width: `${ms.score}%` }}
+                      />
+                    </div>
+                    {/* Breakdown */}
+                    <div className="grid grid-cols-5 gap-2 text-xs text-center">
+                      <div className="bg-gray-50 rounded p-2">
+                        <div className="font-semibold text-gray-700">{bd.sectorMatch}</div>
+                        <div className="text-gray-400">القطاع</div>
+                      </div>
+                      <div className="bg-gray-50 rounded p-2">
+                        <div className="font-semibold text-gray-700">{bd.ratingScore}</div>
+                        <div className="text-gray-400">التقييم</div>
+                      </div>
+                      <div className="bg-gray-50 rounded p-2">
+                        <div className="font-semibold text-gray-700">{bd.responseTimeScore}</div>
+                        <div className="text-gray-400">وقت الاستجابة</div>
+                      </div>
+                      <div className="bg-gray-50 rounded p-2">
+                        <div className="font-semibold text-gray-700">{bd.pastPlacementsScore}</div>
+                        <div className="text-gray-400">التوظيفات السابقة</div>
+                      </div>
+                      <div className="bg-gray-50 rounded p-2">
+                        <div className="font-semibold text-gray-700">{bd.feeScore}</div>
+                        <div className="text-gray-400">الرسوم</div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

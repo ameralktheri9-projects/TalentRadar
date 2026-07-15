@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createNotification } from "@/lib/notifications";
+import { generateCandidateSummary } from "@/lib/ai-candidate-summary";
 
 export async function POST(
   req: NextRequest,
@@ -83,6 +84,9 @@ export async function POST(
         console.error("[apply notification]", notifError);
       }
     }
+
+    // Generate AI summary non-blocking
+    generateCandidateSummary(application.id).catch(console.error);
 
     return NextResponse.json({ data: application }, { status: 201 });
   } catch (error) {

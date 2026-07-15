@@ -20,10 +20,20 @@ const SECTOR_OPTIONS = [
   { value: "OTHER", label: "أخرى" },
 ];
 
+interface SalarySuggestion {
+  min: number;
+  max: number;
+  currency: string;
+  source: string;
+}
+
 export default function NewJobRequestPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiSuggestion, setAiSuggestion] = useState<SalarySuggestion | null>(null);
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -96,6 +106,43 @@ export default function NewJobRequestPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleAiSalarySuggestion = async () => {
+    if (!form.title || !form.sector || !form.experience_level) {
+      setAiError("يرجى تعبئة المسمى الوظيفي والقطاع ومستوى الخبرة أولاً");
+      return;
+    }
+    setAiError(null);
+    setAiSuggestion(null);
+    setAiLoading(true);
+    try {
+      const res = await fetch("/api/ai/salary-suggestion", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: form.title, sector: form.sector, seniority: form.experience_level }),
+      });
+      const data = await res.json() as SalarySuggestion & { error?: string };
+      if (!res.ok) {
+        setAiError(data.error ?? "حدث خطأ أثناء جلب الاقتراح");
+        return;
+      }
+      setAiSuggestion(data);
+    } catch {
+      setAiError("حدث خطأ في الاتصال بالخادم");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const applyAiSuggestion = () => {
+    if (!aiSuggestion) return;
+    setForm((prev) => ({
+      ...prev,
+      salary_min: String(aiSuggestion.min),
+      salary_max: String(aiSuggestion.max),
+    }));
+    setAiSuggestion(null);
   };
 
   const handlePublish = async () => {
@@ -243,6 +290,39 @@ export default function NewJobRequestPage() {
                   className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                 />
               </div>
+            </div>
+
+            {/* AI Salary Suggestion */}
+            <div className="border border-blue-100 bg-blue-50 rounded-lg p-4 space-y-3">
+              <button
+                type="button"
+                onClick={handleAiSalarySuggestion}
+                disabled={aiLoading}
+                className="flex items-center gap-2 bg-white border border-blue-300 text-blue-700 text-sm font-medium px-4 py-2 rounded-lg hover:bg-blue-50 transition-colors disabled:opacity-50"
+              >
+                {aiLoading ? "جاري التحليل..." : "اقتراح الراتب بالذكاء الاصطناعي 🤖"}
+              </button>
+              {aiError && (
+                <p className="text-xs text-red-600">{aiError}</p>
+              )}
+              {aiSuggestion && (
+                <div className="flex items-center gap-4">
+                  <div className="text-sm text-gray-700">
+                    <span className="font-semibold">الاقتراح:</span>{" "}
+                    {aiSuggestion.min.toLocaleString()} – {aiSuggestion.max.toLocaleString()} {aiSuggestion.currency}
+                    {aiSuggestion.source === "estimate" && (
+                      <span className="text-gray-400 text-xs mr-1">(تقدير)</span>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={applyAiSuggestion}
+                    className="bg-blue-600 text-white text-xs px-3 py-1.5 rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    تطبيق هذا الاقتراح
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
