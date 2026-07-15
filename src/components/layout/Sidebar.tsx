@@ -21,6 +21,8 @@ const companyNav: NavItem[] = [
   { href: "/invoices", label: "الفواتير", icon: "💰" },
   { href: "/candidates", label: "المرشحون", icon: "👥" },
   { href: "/placements", label: "التعيينات", icon: "🎯" },
+  { href: "/messages", label: "الرسائل", icon: "💬" },
+  { href: "/settings/users", label: "المستخدمون", icon: "👤" },
 ];
 
 const agencyNav: NavItem[] = [
@@ -29,6 +31,8 @@ const agencyNav: NavItem[] = [
   { href: "/agency/candidates", label: "المرشحون", icon: "👥" },
   { href: "/agency/commissions", label: "العمولات", icon: "💵" },
   { href: "/agency/analytics", label: "التحليلات", icon: "📊" },
+  { href: "/agency/messages", label: "الرسائل", icon: "💬" },
+  { href: "/agency/settings/users", label: "المستخدمون", icon: "👤" },
 ];
 
 const adminNav: NavItem[] = [

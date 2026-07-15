@@ -128,6 +128,19 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    // Create MessageThread for this proposal
+    try {
+      await prisma.messageThread.create({
+        data: {
+          proposalId: proposal.id,
+          companyId: jobRequest.company_id,
+          agencyId: proposal.agency_id,
+        },
+      });
+    } catch (threadErr) {
+      console.error("[messageThread creation]", threadErr);
+    }
+
     // Notify the company's primary HR manager
     try {
       const companyUser = await prisma.companyUser.findFirst({

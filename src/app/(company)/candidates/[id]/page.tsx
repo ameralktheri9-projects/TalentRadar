@@ -7,6 +7,7 @@ import Header from "@/components/layout/Header";
 import InterviewScheduleForm from "./InterviewScheduleForm";
 import InterviewFeedbackForm from "./InterviewFeedbackForm";
 import HireForm from "./HireForm";
+import ProposeInterviewModal from "./ProposeInterviewModal";
 
 const OUTCOME_LABELS: Record<string, string> = {
   PENDING: "في الانتظار",
@@ -210,6 +211,11 @@ export default async function CandidateDetailPage({
           <div className="bg-white rounded-xl border border-gray-200 p-5">
             <h3 className="font-semibold text-gray-700 mb-3">الوظيفة</h3>
             <p className="text-sm">{candidate.proposal.job_request.title}</p>
+          </div>
+
+          <div className="bg-white rounded-xl border border-gray-200 p-5">
+            <h3 className="font-semibold text-gray-700 mb-3">جدولة مقابلة</h3>
+            <ProposeInterviewModal candidateSubmissionId={candidate.id} />
           </div>
 
           {canHire && (
