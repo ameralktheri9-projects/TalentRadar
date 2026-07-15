@@ -351,6 +351,9 @@ model Placement {
   start_date              DateTime?
   guarantee_end_date      DateTime?
   status                  PlacementStatus @default(OFFER_MADE)
+  escrowHeldAt            DateTime?       @map("escrow_held_at")
+  escrowReleasedAt        DateTime?       @map("escrow_released_at")
+  guaranteeExpiresAt      DateTime?       @map("guarantee_expires_at")
 
   candidate_submission    CandidateSubmission @relation(fields: [candidate_submission_id], references: [id])
   company                 Company             @relation(fields: [company_id], references: [id])
@@ -361,24 +364,29 @@ model Placement {
 }
 
 model Invoice {
-  id            String        @id @default(uuid())
-  placement_id  String        @unique
-  company_id    String
-  agency_id     String
-  gross_amount  Float
-  platform_cut  Float
-  agency_payout Float
-  vat_amount    Float
-  total_amount  Float
-  status        InvoiceStatus @default(DRAFT)
-  due_date      DateTime?
-  paid_at       DateTime?
-  payment_ref   String?
-  created_at    DateTime      @default(now())
+  id               String        @id @default(uuid())
+  placement_id     String        @unique
+  company_id       String
+  agency_id        String
+  gross_amount     Float
+  platform_cut     Float
+  agency_payout    Float
+  vat_amount       Float
+  total_amount     Float
+  status           InvoiceStatus @default(DRAFT)
+  due_date         DateTime?
+  paid_at          DateTime?
+  payment_ref      String?
+  created_at       DateTime      @default(now())
+  zatcaUUID        String?       @unique
+  zatcaQrCode      String?
+  installmentPlan  Boolean       @default(false) @map("installment_plan")
+  installmentCount Int           @default(1)     @map("installment_count")
+  installmentsPaid Int           @default(0)     @map("installments_paid")
 
-  placement     Placement     @relation(fields: [placement_id], references: [id])
-  company       Company       @relation(fields: [company_id], references: [id])
-  agency        Agency        @relation(fields: [agency_id], references: [id])
+  placement        Placement     @relation(fields: [placement_id], references: [id])
+  company          Company       @relation(fields: [company_id], references: [id])
+  agency           Agency        @relation(fields: [agency_id], references: [id])
 }
 
 model Rating {

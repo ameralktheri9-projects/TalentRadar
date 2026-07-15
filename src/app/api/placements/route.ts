@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { authOptions, AuthUser } from "@/lib/auth";
 import { createNotification } from "@/lib/notifications";
+import { createInstallmentInvoices } from "@/lib/installments";
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -107,6 +108,9 @@ export async function POST(req: NextRequest) {
     const dueDate = new Date();
     dueDate.setDate(dueDate.getDate() + 30);
 
+    const guaranteeExpiresAt = new Date();
+    guaranteeExpiresAt.setDate(guaranteeExpiresAt.getDate() + 90);
+
     const [placement] = await prisma.$transaction(async (tx) => {
       const pl = await tx.placement.create({
         data: {
@@ -117,21 +121,35 @@ export async function POST(req: NextRequest) {
           start_date: startDateObj,
           guarantee_end_date: guaranteeEndDate,
           status: "OFFER_MADE",
+          escrowHeldAt: new Date(),
+          guaranteeExpiresAt,
         },
       });
 
-      await tx.invoice.create({
+      if (offer_amount <= 50000) {
+        await tx.invoice.create({
+          data: {
+            placement_id: pl.id,
+            company_id: user.entityId!,
+            agency_id: candidate.agency_id,
+            gross_amount: grossAmount,
+            platform_cut: platformCut,
+            agency_payout: agencyPayout,
+            vat_amount: vatAmount,
+            total_amount: totalAmount,
+            status: "ISSUED",
+            due_date: dueDate,
+          },
+        });
+      }
+
+      await tx.escrowTransaction.create({
         data: {
-          placement_id: pl.id,
-          company_id: user.entityId!,
-          agency_id: candidate.agency_id,
-          gross_amount: grossAmount,
-          platform_cut: platformCut,
-          agency_payout: agencyPayout,
-          vat_amount: vatAmount,
-          total_amount: totalAmount,
-          status: "ISSUED",
-          due_date: dueDate,
+          placementId: pl.id,
+          amount: offer_amount * 0.1,
+          currency: "SAR",
+          heldAt: new Date(),
+          payoutStatus: "PENDING",
         },
       });
 
@@ -160,6 +178,17 @@ export async function POST(req: NextRequest) {
 
       return [pl];
     });
+
+    // Create installment invoices outside transaction (uses dynamic import)
+    if (offer_amount > 50000) {
+      await createInstallmentInvoices({
+        placementId: placement.id,
+        companyId: user.entityId!,
+        agencyId: candidate.agency_id,
+        totalAmount: grossAmount,
+        installmentCount: 3,
+      });
+    }
 
     const result = await prisma.placement.findUnique({
       where: { id: placement.id },

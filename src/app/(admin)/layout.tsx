@@ -11,6 +11,7 @@ const adminNav = [
   { href: "/admin/agencies", label: "الوكالات", icon: "◻" },
   { href: "/admin/sla", label: "مراقبة SLA", icon: "◻" },
   { href: "/admin/analytics", label: "التحليلات", icon: "◻" },
+  { href: "/admin/finance", label: "المالية", icon: "◻" },
 ];
 
 function AdminSidebar() {
