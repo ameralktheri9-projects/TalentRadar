@@ -8,6 +8,7 @@ export default function AgencyRegistrationPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
   const [form, setForm] = useState({
     name_ar: "",
     name_en: "",
@@ -36,19 +37,16 @@ export default function AgencyRegistrationPage() {
 
     setLoading(true);
     try {
-      const res = await fetch("/api/agencies", {
+      const res = await fetch("/api/auth/register/agency", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name_ar: form.name_ar,
-          name_en: form.name_en,
-          hrsd_licence: form.hrsd_licence,
-          founded_year: form.founded_year ? parseInt(form.founded_year) : undefined,
-          team_size: parseInt(form.team_size) || 1,
-          sector_tags: form.sector_tags.split(",").map((s) => s.trim()).filter(Boolean),
-          contact_name: form.contact_name,
-          contact_email: form.contact_email,
-          contact_password: form.contact_password,
+          agencyName: form.name_ar || form.name_en,
+          hrsdLicenseNumber: form.hrsd_licence,
+          ownerName: form.contact_name,
+          email: form.contact_email,
+          password: form.contact_password,
+          specializations: form.sector_tags.split(",").map((s: string) => s.trim()).filter(Boolean),
         }),
       });
 
@@ -58,13 +56,28 @@ export default function AgencyRegistrationPage() {
         return;
       }
 
-      router.push("/login?registered=agency");
+      setSuccess(true);
+      setTimeout(() => {
+        router.push(`/verify-email?email=${encodeURIComponent(form.contact_email)}&userType=AGENCY`);
+      }, 2000);
     } catch {
       setError("حدث خطأ في الاتصال. يرجى المحاولة مرة أخرى.");
     } finally {
       setLoading(false);
     }
   };
+
+  if (success) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-teal-100 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
+          <div className="text-5xl mb-4">📧</div>
+          <h2 className="text-xl font-bold text-gray-800 mb-2">تحقق من بريدك الإلكتروني</h2>
+          <p className="text-gray-600">أرسلنا رمز تحقق إلى {form.contact_email}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-teal-100 flex items-center justify-center p-4">

@@ -1,0 +1,54 @@
+export const dynamic = "force-dynamic"
+
+import { NextRequest, NextResponse } from "next/server"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
+import { prisma } from "@/lib/prisma"
+
+export async function POST(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session) return NextResponse.json({ error: "غير مصرح" }, { status: 401 })
+
+    const user = session.user as { userType?: string; entityId?: string }
+    if (user.userType !== "AGENCY" || !user.entityId) {
+      return NextResponse.json({ error: "غير مصرح" }, { status: 401 })
+    }
+
+    const body = await req.json()
+    const { tier } = body
+
+    const validTiers = ["FREE", "BASIC", "PRO", "ELITE"]
+    if (!validTiers.includes(tier)) {
+      return NextResponse.json({ error: "خطة غير صالحة" }, { status: 400 })
+    }
+
+    const now = new Date()
+    const periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
+
+    const sub = await prisma.agencySubscription.create({
+      data: {
+        agencyId: user.entityId,
+        tier,
+        status: "ACTIVE",
+        currentPeriodStart: now,
+        currentPeriodEnd: periodEnd,
+      },
+    })
+
+    await prisma.subscriptionEvent.create({
+      data: {
+        agencySubId: sub.id,
+        eventType: "SUBSCRIBED",
+        toTier: tier,
+        triggeredBy: (session.user as { id?: string }).id,
+        occurredAt: now,
+      },
+    })
+
+    return NextResponse.json({ subscription: sub }, { status: 201 })
+  } catch (err) {
+    console.error("Agency subscribe error:", err)
+    return NextResponse.json({ error: "حدث خطأ" }, { status: 400 })
+  }
+}

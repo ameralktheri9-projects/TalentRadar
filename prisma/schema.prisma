@@ -231,6 +231,7 @@ model Agency {
   invoices              Invoice[]
   ratings               Rating[]
   subscriptions         Subscription[]
+  agencySubscriptions   AgencySubscription[]
 }
 
 model AgencyUser {
@@ -291,6 +292,7 @@ model Proposal {
   agency                   Agency          @relation(fields: [agency_id], references: [id])
   submitter                AgencyUser      @relation(fields: [submitted_by], references: [id])
   candidate_submissions    CandidateSubmission[]
+  messageThread            MessageThread?
 }
 
 model CandidateSubmission {
@@ -317,6 +319,8 @@ model CandidateSubmission {
   agency           Agency          @relation(fields: [agency_id], references: [id])
   interviews       Interview[]
   placement        Placement?
+  linkedCandidateId String?
+  linkedCandidate   Candidate?     @relation(fields: [linkedCandidateId], references: [id])
 }
 
 model Interview {
@@ -352,6 +356,7 @@ model Placement {
   agency                  Agency              @relation(fields: [agency_id], references: [id])
   invoice                 Invoice?
   rating                  Rating?
+  escrowTransactions      EscrowTransaction[]
 }
 
 model Invoice {
@@ -412,4 +417,269 @@ model AdminUser {
   email         String   @unique
   password_hash String
   created_at    DateTime @default(now())
+}
+
+model CandidateUser {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  passwordHash    String
+  firstName       String
+  lastName        String
+  phone           String?
+  emailVerifiedAt DateTime?
+  createdAt       DateTime  @default(now())
+  profile         CandidateProfile?
+}
+
+model OtpToken {
+  id        String    @id @default(cuid())
+  token     String    @unique
+  userType  String
+  userId    String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  token     String    @unique
+  userType  String
+  userId    String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+}
+
+model OrgInvite {
+  id         String    @id @default(cuid())
+  token      String    @unique
+  orgType    String
+  orgId      String
+  email      String
+  role       String
+  expiresAt  DateTime
+  acceptedAt DateTime?
+  createdAt  DateTime  @default(now())
+}
+
+model AgencySubscription {
+  id                 String              @id @default(cuid())
+  agencyId           String
+  agency             Agency              @relation(fields: [agencyId], references: [id])
+  tier               AgencyTier
+  status             SubStatus           @default(ACTIVE)
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  trialEndsAt        DateTime?
+  hyperpayToken      String?
+  cancelledAt        DateTime?
+  createdAt          DateTime            @default(now())
+  events             SubscriptionEvent[]
+}
+
+model CompanySubscription {
+  id                 String      @id @default(cuid())
+  companyId          String      @unique
+  tier               CompanyTier
+  status             SubStatus   @default(ACTIVE)
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  hyperpayToken      String?
+  cancelledAt        DateTime?
+  createdAt          DateTime    @default(now())
+}
+
+model SubscriptionEvent {
+  id          String              @id @default(cuid())
+  agencySubId String?
+  agencySub   AgencySubscription? @relation(fields: [agencySubId], references: [id])
+  eventType   String
+  fromTier    String?
+  toTier      String?
+  triggeredBy String?
+  occurredAt  DateTime            @default(now())
+}
+
+model Notification {
+  id            String    @id @default(cuid())
+  userId        String
+  userType      String
+  event         String
+  title         String
+  body          String
+  referenceId   String?
+  referenceType String?
+  channel       String
+  readAt        DateTime?
+  deliveredAt   DateTime?
+  createdAt     DateTime  @default(now())
+}
+
+model MessageThread {
+  id             String    @id @default(cuid())
+  proposalId     String    @unique
+  proposal       Proposal  @relation(fields: [proposalId], references: [id])
+  companyId      String
+  agencyId       String
+  lastActivityAt DateTime  @default(now())
+  messages       Message[]
+  createdAt      DateTime  @default(now())
+}
+
+model Message {
+  id              String        @id @default(cuid())
+  threadId        String
+  thread          MessageThread @relation(fields: [threadId], references: [id])
+  senderType      String
+  senderId        String
+  body            String
+  attachments     Json?
+  isInternalNote  Boolean       @default(false)
+  readByCompanyAt DateTime?
+  readByAgencyAt  DateTime?
+  createdAt       DateTime      @default(now())
+}
+
+model MatchScore {
+  id           String   @id @default(cuid())
+  jobRequestId String
+  agencyId     String
+  score        Int
+  breakdown    Json
+  computedAt   DateTime @default(now())
+
+  @@unique([jobRequestId, agencyId])
+}
+
+model EscrowTransaction {
+  id              String    @id @default(cuid())
+  placementId     String
+  placement       Placement @relation(fields: [placementId], references: [id])
+  amount          Float
+  currency        String    @default("SAR")
+  heldAt          DateTime?
+  releasedAt      DateTime?
+  releaseReason   String?
+  payoutStatus    String    @default("PENDING")
+  payoutReference String?
+  createdAt       DateTime  @default(now())
+}
+
+model Candidate {
+  id                 String                @id @default(cuid())
+  agencyId           String
+  fullName           String
+  titleCurrent       String?
+  cvUrl              String?
+  skills             String[]
+  yearsExperience    Int?
+  expectedSalary     Float?
+  nationality        String?
+  availabilityStatus String                @default("ACTIVE")
+  consentGiven       Boolean               @default(false)
+  createdAt          DateTime              @default(now())
+  submissions        CandidateSubmission[]
+}
+
+model CandidateProfile {
+  id                 String              @id @default(cuid())
+  userId             String              @unique
+  user               CandidateUser       @relation(fields: [userId], references: [id])
+  headline           String?
+  aboutMe            String?
+  photoUrl           String?
+  cvUrl              String?
+  skills             String[]
+  languages          String[]
+  expectedSalaryMin  Float?
+  expectedSalaryMax  Float?
+  availabilityStatus String              @default("OPEN")
+  visibilityMode     String              @default("PUBLIC")
+  profileScore       Int                 @default(0)
+  location           String?
+  consentGiven       Boolean             @default(false)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  experiences        WorkExperience[]
+  education          Education[]
+  applications       DirectApplication[]
+}
+
+model WorkExperience {
+  id          String           @id @default(cuid())
+  profileId   String
+  profile     CandidateProfile @relation(fields: [profileId], references: [id])
+  company     String
+  title       String
+  startDate   DateTime
+  endDate     DateTime?
+  isCurrent   Boolean          @default(false)
+  description String?
+  location    String?
+}
+
+model Education {
+  id           String           @id @default(cuid())
+  profileId    String
+  profile      CandidateProfile @relation(fields: [profileId], references: [id])
+  institution  String
+  degree       String?
+  fieldOfStudy String?
+  startYear    Int
+  endYear      Int?
+}
+
+model DirectApplication {
+  id              String           @id @default(cuid())
+  profileId       String
+  profile         CandidateProfile @relation(fields: [profileId], references: [id])
+  jobRequestId    String
+  coverNote       String?          @db.VarChar(500)
+  status          AppStatus        @default(SUBMITTED)
+  aiSummary       String?
+  matchScore      Int?
+  appliedAt       DateTime         @default(now())
+  statusUpdatedAt DateTime         @default(now())
+
+  @@unique([profileId, jobRequestId])
+}
+
+model RatingDetail {
+  id                 String @id @default(cuid())
+  ratingId           String @unique
+  speed              Int
+  candidateQuality   Int
+  communication      Int
+  valueForMoney      Int
+  overall            Int
+}
+
+enum AgencyTier {
+  FREE
+  BASIC
+  PRO
+  ELITE
+}
+
+enum CompanyTier {
+  FREE
+  BASIC
+  PRO
+  ENTERPRISE
+}
+
+enum SubStatus {
+  ACTIVE
+  CANCELLED
+  PAST_DUE
+  TRIALING
+}
+
+enum AppStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  INTERVIEW_INVITED
+  REJECTED
+  OFFER_MADE
 }

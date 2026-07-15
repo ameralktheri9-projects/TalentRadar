@@ -38,6 +38,7 @@ export default function CompanyRegistrationPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false)
   const [form, setForm] = useState({
     name_ar: "",
     name_en: "",
@@ -67,20 +68,16 @@ export default function CompanyRegistrationPage() {
 
     setLoading(true);
     try {
-      const res = await fetch("/api/companies", {
+      const res = await fetch("/api/auth/register/company", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name_ar: form.name_ar,
-          name_en: form.name_en,
-          cr_number: form.cr_number,
-          industry_sector: form.industry_sector,
-          city: form.city,
-          saudi_employee_count: parseInt(form.saudi_employee_count) || 0,
-          total_employee_count: parseInt(form.total_employee_count) || 0,
-          contact_name: form.contact_name,
-          contact_email: form.contact_email,
-          contact_password: form.contact_password,
+          tradeName: form.name_ar || form.name_en,
+          crNumber: form.cr_number,
+          sector: form.industry_sector,
+          contactName: form.contact_name,
+          contactEmail: form.contact_email,
+          password: form.contact_password,
         }),
       });
 
@@ -90,13 +87,28 @@ export default function CompanyRegistrationPage() {
         return;
       }
 
-      router.push("/login?registered=company");
+      setSuccess(true);
+      setTimeout(() => {
+        router.push(`/verify-email?email=${encodeURIComponent(form.contact_email)}&userType=COMPANY`);
+      }, 2000);
     } catch {
       setError("حدث خطأ في الاتصال. يرجى المحاولة مرة أخرى.");
     } finally {
       setLoading(false);
     }
   };
+
+  if (success) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
+          <div className="text-5xl mb-4">📧</div>
+          <h2 className="text-xl font-bold text-gray-800 mb-2">تحقق من بريدك الإلكتروني</h2>
+          <p className="text-gray-600">أرسلنا رمز تحقق إلى {form.contact_email}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
