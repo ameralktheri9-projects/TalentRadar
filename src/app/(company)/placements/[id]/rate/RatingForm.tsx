@@ -4,10 +4,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 const DIMENSIONS = [
-  { key: "score_speed", label: "سرعة التوظيف" },
-  { key: "score_quality", label: "جودة المرشحين" },
-  { key: "score_professionalism", label: "الاحترافية" },
-  { key: "score_outcome", label: "النتيجة العامة" },
+  { key: "speed", label: "سرعة التوظيف" },
+  { key: "candidateQuality", label: "جودة المرشحين" },
+  { key: "communication", label: "التواصل" },
+  { key: "valueForMoney", label: "القيمة مقابل السعر" },
+  { key: "overall", label: "التقييم العام" },
 ] as const;
 
 type ScoreKey = (typeof DIMENSIONS)[number]["key"];
@@ -15,10 +16,11 @@ type ScoreKey = (typeof DIMENSIONS)[number]["key"];
 export default function RatingForm({ placementId }: { placementId: string }) {
   const router = useRouter();
   const [scores, setScores] = useState<Record<ScoreKey, number>>({
-    score_speed: 0,
-    score_quality: 0,
-    score_professionalism: 0,
-    score_outcome: 0,
+    speed: 0,
+    candidateQuality: 0,
+    communication: 0,
+    valueForMoney: 0,
+    overall: 0,
   });
   const [comment, setComment] = useState("");
   const [loading, setLoading] = useState(false);
@@ -53,7 +55,7 @@ export default function RatingForm({ placementId }: { placementId: string }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-6" dir="rtl">
       {error && <p className="text-red-600 text-sm">{error}</p>}
 
       {DIMENSIONS.map(({ key, label }) => (

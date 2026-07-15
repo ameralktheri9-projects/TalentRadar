@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { authOptions, AuthUser } from "@/lib/auth";
+import { createNotification } from "@/lib/notifications";
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -164,6 +165,42 @@ export async function POST(req: NextRequest) {
       where: { id: placement.id },
       include: { invoice: true },
     });
+
+    // Notify company and agency about placement
+    try {
+      const companyUser = await prisma.companyUser.findFirst({
+        where: { company_id: user.entityId!, is_primary: true },
+      });
+      if (companyUser) {
+        await createNotification({
+          userId: companyUser.id,
+          userType: "COMPANY_USER",
+          event: "placement_created",
+          title: "تم تسجيل التعيين",
+          body: "تم تسجيل تعيين جديد بنجاح وسيتم إصدار الفاتورة قريباً",
+          referenceId: placement.id,
+          referenceType: "Placement",
+          channel: "IN_APP",
+        });
+      }
+      const agencyUser = await prisma.agencyUser.findFirst({
+        where: { agency_id: candidate.agency_id },
+      });
+      if (agencyUser) {
+        await createNotification({
+          userId: agencyUser.id,
+          userType: "AGENCY_USER",
+          event: "placement_created",
+          title: "تم تأكيد التعيين",
+          body: "تم تأكيد تعيين مرشحك بنجاح. سيتم صرف العمولة عند سداد الفاتورة",
+          referenceId: placement.id,
+          referenceType: "Placement",
+          channel: "IN_APP",
+        });
+      }
+    } catch (notifError) {
+      console.error("[placement notification]", notifError);
+    }
 
     return NextResponse.json({ data: result }, { status: 201 });
   } catch (error) {

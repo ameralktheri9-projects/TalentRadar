@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import NotificationBell from "@/components/NotificationBell";
 
 const adminNav = [
   { href: "/admin/dashboard", label: "لوحة التحكم", icon: "◻" },
@@ -54,7 +55,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <div className="flex min-h-screen bg-gray-50">
       <AdminSidebar />
-      <main className="flex-1 overflow-auto">{children}</main>
+      <div className="flex-1 flex flex-col overflow-auto">
+        <header className="flex items-center justify-end px-6 py-3 bg-slate-800 border-b border-slate-700 sticky top-0 z-40">
+          <NotificationBell />
+        </header>
+        <main className="flex-1 overflow-auto">{children}</main>
+      </div>
     </div>
   );
 }

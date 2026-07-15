@@ -26,6 +26,11 @@ export default withAuth(
           return true;
         }
 
+        // Candidate portal routes are public for Sprint 2 (Sprint 4 will add CandidateUser auth)
+        if (pathname.startsWith("/candidate") || pathname.startsWith("/api/candidate")) {
+          return true;
+        }
+
         // API auth routes and setup are public
         if (pathname.startsWith("/api/auth") || pathname.startsWith("/api/setup")) {
           return true;

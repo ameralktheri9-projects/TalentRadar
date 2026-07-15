@@ -15,22 +15,23 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const {
       placement_id,
-      score_speed,
-      score_quality,
-      score_professionalism,
-      score_outcome,
+      speed,
+      candidateQuality,
+      communication,
+      valueForMoney,
+      overall,
       comment,
     } = body;
 
-    if (!placement_id || !score_speed || !score_quality || !score_professionalism || !score_outcome) {
+    if (!placement_id || !speed || !candidateQuality || !communication || !valueForMoney || !overall) {
       return NextResponse.json(
-        { error: "placement_id, score_speed, score_quality, score_professionalism, score_outcome are required" },
+        { error: "placement_id and all 5 dimension scores are required" },
         { status: 400 }
       );
     }
 
-    const scores = [score_speed, score_quality, score_professionalism, score_outcome];
-    if (scores.some((s) => s < 1 || s > 5)) {
+    const dimScores = [speed, candidateQuality, communication, valueForMoney, overall];
+    if (dimScores.some((s) => s < 1 || s > 5)) {
       return NextResponse.json({ error: "All scores must be between 1 and 5" }, { status: 400 });
     }
 
@@ -50,21 +51,37 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Rating already submitted for this placement" }, { status: 409 });
     }
 
-    const overallScore =
-      (score_speed + score_quality + score_professionalism + score_outcome) / 4;
+    // overall_score = average of all 5 dimensions
+    const overallScore = dimScores.reduce((a, b) => a + b, 0) / 5;
 
-    const rating = await prisma.rating.create({
-      data: {
-        placement_id,
-        rated_by: user.id,
-        agency_id: placement.agency_id,
-        score_speed,
-        score_quality,
-        score_professionalism,
-        score_outcome,
-        overall_score: overallScore,
-        comment,
-      },
+    const rating = await prisma.$transaction(async (tx) => {
+      const r = await tx.rating.create({
+        data: {
+          placement_id,
+          rated_by: user.id,
+          agency_id: placement.agency_id,
+          // Map 5 dimensions to the 4 existing schema fields + store detail
+          score_speed: speed,
+          score_quality: candidateQuality,
+          score_professionalism: communication,
+          score_outcome: valueForMoney,
+          overall_score: overallScore,
+          comment,
+        },
+      });
+
+      await tx.ratingDetail.create({
+        data: {
+          ratingId: r.id,
+          speed,
+          candidateQuality,
+          communication,
+          valueForMoney,
+          overall,
+        },
+      });
+
+      return r;
     });
 
     // Recalculate agency rating_avg

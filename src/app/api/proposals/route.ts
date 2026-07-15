@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { authOptions, AuthUser } from "@/lib/auth";
+import { createNotification } from "@/lib/notifications";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -126,6 +127,27 @@ export async function POST(req: NextRequest) {
         submitted_at: new Date(),
       },
     });
+
+    // Notify the company's primary HR manager
+    try {
+      const companyUser = await prisma.companyUser.findFirst({
+        where: { company_id: jobRequest.company_id, is_primary: true },
+      });
+      if (companyUser) {
+        await createNotification({
+          userId: companyUser.id,
+          userType: "COMPANY_USER",
+          event: "proposal_received",
+          title: "عرض جديد",
+          body: `وكالة قدّمت عرضاً على طلب التوظيف "${jobRequest.title}"`,
+          referenceId: proposal.id,
+          referenceType: "Proposal",
+          channel: "IN_APP",
+        });
+      }
+    } catch (notifError) {
+      console.error("[proposal notification]", notifError);
+    }
 
     return NextResponse.json({ data: proposal }, { status: 201 });
   } catch (error) {

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { authOptions, AuthUser } from "@/lib/auth";
+import { createNotification } from "@/lib/notifications";
 
 export async function GET(
   req: NextRequest,
@@ -130,6 +131,29 @@ export async function PATCH(
       where: { id: params.id },
       data: { status },
     });
+
+    // Notify agency when candidate is shortlisted
+    if (status === "SHORTLISTED") {
+      try {
+        const agencyUser = await prisma.agencyUser.findFirst({
+          where: { agency_id: candidate.proposal.agency.id },
+        });
+        if (agencyUser) {
+          await createNotification({
+            userId: agencyUser.id,
+            userType: "AGENCY_USER",
+            event: "candidate_shortlisted",
+            title: "مرشح مُختار",
+            body: `تم اختيار أحد مرشحيك للمرحلة التالية في طلب التوظيف`,
+            referenceId: params.id,
+            referenceType: "CandidateSubmission",
+            channel: "IN_APP",
+          });
+        }
+      } catch (notifError) {
+        console.error("[shortlist notification]", notifError);
+      }
+    }
 
     return NextResponse.json({ data: updated });
   } catch (error) {

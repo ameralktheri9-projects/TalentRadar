@@ -264,6 +264,7 @@ model JobRequest {
   budget_value          Float
   status                JobRequestStatus @default(DRAFT)
   proposal_deadline     DateTime?
+  sla_alert_sent_at     DateTime?
   opened_at             DateTime?
   closed_at             DateTime?
   created_at            DateTime         @default(now())
