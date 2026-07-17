@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
     });
 
     // Fetch job request details separately since DirectApplication doesn't have a Prisma relation to JobRequest model yet
-    const jobRequestIds = [...new Set(applications.map((a) => a.jobRequestId))];
+    const jobRequestIds = Array.from(new Set(applications.map((a) => a.jobRequestId)));
     const jobRequests = await prisma.jobRequest.findMany({
       where: { id: { in: jobRequestIds } },
       select: { id: true, title: true, sector: true },
