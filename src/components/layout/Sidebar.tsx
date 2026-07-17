@@ -20,6 +20,7 @@ const companyNav: NavItem[] = [
   { href: "/agencies", label: "الوكالات", icon: "🏢" },
   { href: "/invoices", label: "الفواتير", icon: "💰" },
   { href: "/candidates", label: "المرشحون", icon: "👥" },
+  { href: "/candidates/search", label: "بحث المرشحين", icon: "🔍" },
   { href: "/placements", label: "التعيينات", icon: "🎯" },
   { href: "/messages", label: "الرسائل", icon: "💬" },
   { href: "/settings/users", label: "المستخدمون", icon: "👤" },
@@ -32,6 +33,7 @@ const agencyNav: NavItem[] = [
   { href: "/agency/commissions", label: "العمولات", icon: "💵" },
   { href: "/agency/analytics", label: "التحليلات", icon: "📊" },
   { href: "/agency/messages", label: "الرسائل", icon: "💬" },
+  { href: "/agency/profile/edit", label: "الملف الشخصي", icon: "✏️" },
   { href: "/agency/settings/users", label: "المستخدمون", icon: "👤" },
 ];
 
@@ -39,6 +41,11 @@ const adminNav: NavItem[] = [
   { href: "/admin/dashboard", label: "لوحة التحكم", icon: "🏠" },
   { href: "/admin/agencies", label: "الوكالات", icon: "🏢" },
   { href: "/admin/companies", label: "الشركات", icon: "🏭" },
+  { href: "/admin/verification-queue", label: "قائمة التحقق", icon: "✅" },
+  { href: "/admin/finance", label: "المالية", icon: "💳" },
+  { href: "/admin/sla", label: "متابعة SLA", icon: "⏱️" },
+  { href: "/admin/analytics", label: "التحليلات", icon: "📊" },
+  { href: "/admin/matching-config", label: "إعداد التطابق", icon: "⚙️" },
 ];
 
 export default function Sidebar({ userType }: SidebarProps) {

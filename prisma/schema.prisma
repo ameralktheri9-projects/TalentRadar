@@ -209,6 +209,8 @@ model Agency {
   id                    String           @id @default(uuid())
   name_ar               String
   name_en               String
+  publicSlug            String?          @unique @map("public_slug")
+  bio                   String?
   hrsd_licence          String           @unique
   hrsd_verified         Boolean          @default(false)
   founded_year          Int?

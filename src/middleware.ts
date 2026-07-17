@@ -21,7 +21,7 @@ export default withAuth(
         const pathname = req.nextUrl.pathname;
 
         // Public routes
-        const publicPaths = ["/", "/login", "/register", "/pricing", "/verify-email", "/reset-password", "/accept-invite"];
+        const publicPaths = ["/", "/login", "/register", "/pricing", "/verify-email", "/reset-password", "/accept-invite", "/agencies"];
         if (publicPaths.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
           return true;
         }
@@ -31,8 +31,8 @@ export default withAuth(
           return true;
         }
 
-        // API auth routes and setup are public
-        if (pathname.startsWith("/api/auth") || pathname.startsWith("/api/setup")) {
+        // API auth routes, setup, and public agency profiles are public
+        if (pathname.startsWith("/api/auth") || pathname.startsWith("/api/setup") || pathname.startsWith("/api/agencies")) {
           return true;
         }
 

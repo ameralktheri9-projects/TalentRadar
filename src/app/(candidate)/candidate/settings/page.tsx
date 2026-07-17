@@ -9,6 +9,12 @@ export default function CandidateSettings() {
   const [deleting, setDeleting] = useState(false);
   const [msg, setMsg] = useState("");
 
+  // Password change state
+  const [pwForm, setPwForm] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
+  const [pwSaving, setPwSaving] = useState(false);
+  const [pwMsg, setPwMsg] = useState("");
+  const [pwError, setPwError] = useState("");
+
   async function handleVisibility(v: "OPEN" | "PRIVATE" | "UNAVAILABLE") {
     setVisibility(v);
     await fetch("/api/candidate/profile", {
@@ -18,6 +24,42 @@ export default function CandidateSettings() {
     });
     setMsg("تم حفظ إعدادات الظهور");
     setTimeout(() => setMsg(""), 3000);
+  }
+
+  async function handlePasswordChange(e: React.FormEvent) {
+    e.preventDefault();
+    setPwMsg("");
+    setPwError("");
+    if (pwForm.newPassword !== pwForm.confirmPassword) {
+      setPwError("كلمتا المرور غير متطابقتين");
+      return;
+    }
+    if (pwForm.newPassword.length < 8) {
+      setPwError("يجب أن تكون كلمة المرور 8 أحرف على الأقل");
+      return;
+    }
+    setPwSaving(true);
+    const candidateUserId = localStorage.getItem("candidateUserId") ?? "";
+    const res = await fetch("/api/candidate/password", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "x-candidate-user-id": candidateUserId,
+      },
+      body: JSON.stringify({
+        currentPassword: pwForm.currentPassword,
+        newPassword: pwForm.newPassword,
+      }),
+    });
+    setPwSaving(false);
+    if (res.ok) {
+      setPwMsg("تم تغيير كلمة المرور بنجاح");
+      setPwForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      setTimeout(() => setPwMsg(""), 4000);
+    } else {
+      const data = await res.json();
+      setPwError(data.error ?? "حدث خطأ");
+    }
   }
 
   async function handleDelete() {
@@ -38,15 +80,44 @@ export default function CandidateSettings() {
       {msg && <p className="text-green-600 text-sm">{msg}</p>}
 
       {/* Change password */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+      <form onSubmit={handlePasswordChange} className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
         <h2 className="font-semibold text-gray-700">تغيير كلمة المرور</h2>
+        {pwMsg && <p className="text-green-600 text-sm">{pwMsg}</p>}
+        {pwError && <p className="text-red-500 text-sm">{pwError}</p>}
         <div className="space-y-3">
-          <input type="password" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" placeholder="كلمة المرور الحالية" />
-          <input type="password" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" placeholder="كلمة المرور الجديدة" />
-          <input type="password" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" placeholder="تأكيد كلمة المرور الجديدة" />
+          <input
+            type="password"
+            value={pwForm.currentPassword}
+            onChange={(e) => setPwForm((f) => ({ ...f, currentPassword: e.target.value }))}
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+            placeholder="كلمة المرور الحالية"
+            required
+          />
+          <input
+            type="password"
+            value={pwForm.newPassword}
+            onChange={(e) => setPwForm((f) => ({ ...f, newPassword: e.target.value }))}
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+            placeholder="كلمة المرور الجديدة"
+            required
+          />
+          <input
+            type="password"
+            value={pwForm.confirmPassword}
+            onChange={(e) => setPwForm((f) => ({ ...f, confirmPassword: e.target.value }))}
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+            placeholder="تأكيد كلمة المرور الجديدة"
+            required
+          />
         </div>
-        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700">حفظ كلمة المرور</button>
-      </div>
+        <button
+          type="submit"
+          disabled={pwSaving}
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50"
+        >
+          {pwSaving ? "جاري الحفظ..." : "حفظ كلمة المرور"}
+        </button>
+      </form>
 
       {/* Visibility */}
       <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-3">

@@ -1,5 +1,16 @@
 export const dynamic = "force-dynamic";
 
+// Required V2 environment variables:
+// SENDGRID_API_KEY, SENDGRID_FROM_EMAIL
+// OPENAI_API_KEY, OPENAI_MODEL (defaults to gpt-4o)
+// CRON_SECRET (for /api/cron/* endpoints)
+// NEXT_PUBLIC_APP_URL (e.g. https://talent-radar-gamma.vercel.app)
+// NEXTAUTH_SECRET, NEXTAUTH_URL
+// DATABASE_URL (Neon PostgreSQL connection string)
+// Optional (features degrade gracefully without them):
+//   HYPERPAY_ACCESS_TOKEN, HYPERPAY_BASE_URL, HYPERPAY_ENTITY_ID_CARD, HYPERPAY_WEBHOOK_SECRET
+//   AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, AWS_S3_BUCKET
+
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";

@@ -8,6 +8,7 @@ import Header from "@/components/layout/Header";
 import StatusBadge from "@/components/ui/StatusBadge";
 import ProposalActions from "./ProposalActions";
 import CloseButton from "./CloseButton";
+import DirectApplicationsTab from "./DirectApplicationsTab";
 
 const EXPERIENCE_LABELS: Record<string, string> = {
   JUNIOR: "مبتدئ",
@@ -182,6 +183,16 @@ export default async function JobRequestDetailPage({ params, searchParams }: Pag
             >
               المرشحون ({allCandidates.length})
             </Link>
+            <Link
+              href={`/job-requests/${params.id}?tab=applications`}
+              className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+                activeTab === "applications"
+                  ? "bg-white border border-b-white border-gray-200 text-blue-600 -mb-px"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              الطلبات المباشرة
+            </Link>
           </div>
 
           {/* Proposals tab */}
@@ -287,6 +298,11 @@ export default async function JobRequestDetailPage({ params, searchParams }: Pag
                 </div>
               )}
             </div>
+          )}
+
+          {/* Direct Applications tab */}
+          {activeTab === "applications" && (
+            <DirectApplicationsTab jobRequestId={params.id} />
           )}
         </div>
 
