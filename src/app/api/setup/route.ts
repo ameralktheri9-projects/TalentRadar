@@ -89,6 +89,28 @@ const FOREIGN_KEYS = [
   `ALTER TABLE "Subscription" ADD CONSTRAINT "Subscription_agency_id_fkey" FOREIGN KEY ("agency_id") REFERENCES "Agency"("id") ON DELETE RESTRICT ON UPDATE CASCADE`,
 ];
 
+// Drop V2 tables that were created with wrong column names so we can recreate them correctly
+const V2_DROP_TABLES = [
+  `DROP TABLE IF EXISTS "DirectApplication" CASCADE`,
+  `DROP TABLE IF EXISTS "WorkExperience" CASCADE`,
+  `DROP TABLE IF EXISTS "Education" CASCADE`,
+  `DROP TABLE IF EXISTS "CandidateProfile" CASCADE`,
+  `DROP TABLE IF EXISTS "RatingDetail" CASCADE`,
+  `DROP TABLE IF EXISTS "Message" CASCADE`,
+  `DROP TABLE IF EXISTS "MessageThread" CASCADE`,
+  `DROP TABLE IF EXISTS "EscrowTransaction" CASCADE`,
+  `DROP TABLE IF EXISTS "Candidate" CASCADE`,
+  `DROP TABLE IF EXISTS "CandidateUser" CASCADE`,
+  `DROP TABLE IF EXISTS "OtpToken" CASCADE`,
+  `DROP TABLE IF EXISTS "PasswordResetToken" CASCADE`,
+  `DROP TABLE IF EXISTS "OrgInvite" CASCADE`,
+  `DROP TABLE IF EXISTS "SubscriptionEvent" CASCADE`,
+  `DROP TABLE IF EXISTS "AgencySubscription" CASCADE`,
+  `DROP TABLE IF EXISTS "CompanySubscription" CASCADE`,
+  `DROP TABLE IF EXISTS "Notification" CASCADE`,
+  `DROP TABLE IF EXISTS "MatchScore" CASCADE`,
+];
+
 const V2_ENUMS = [
   `DO $$ BEGIN CREATE TYPE "AgencyTier" AS ENUM ('FREE','BASIC','PRO','ELITE'); EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
   `DO $$ BEGIN CREATE TYPE "CompanyTier" AS ENUM ('FREE','BASIC','PRO','ENTERPRISE'); EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
@@ -112,39 +134,67 @@ const V2_ALTER_COLUMNS = [
 ];
 
 const V2_TABLES = [
+  // Unique index for Agency.public_slug (added by ALTER in V2_ALTER_COLUMNS)
   `CREATE UNIQUE INDEX IF NOT EXISTS "Agency_public_slug_key" ON "Agency"("public_slug")`,
-  `CREATE TABLE IF NOT EXISTS "CandidateUser" ("id" TEXT NOT NULL,"email" TEXT NOT NULL,"password_hash" TEXT NOT NULL,"full_name" TEXT NOT NULL,"phone" TEXT,"email_verified" BOOLEAN NOT NULL DEFAULT false,"created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "CandidateUser_pkey" PRIMARY KEY ("id"))`,
+  // CandidateUser
+  `CREATE TABLE IF NOT EXISTS "CandidateUser" ("id" TEXT NOT NULL,"email" TEXT NOT NULL,"passwordHash" TEXT NOT NULL,"firstName" TEXT NOT NULL,"lastName" TEXT NOT NULL,"phone" TEXT,"emailVerifiedAt" TIMESTAMP(3),"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "CandidateUser_pkey" PRIMARY KEY ("id"))`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "CandidateUser_email_key" ON "CandidateUser"("email")`,
-  `CREATE TABLE IF NOT EXISTS "OtpToken" ("id" TEXT NOT NULL,"email" TEXT NOT NULL,"token" TEXT NOT NULL,"expires_at" TIMESTAMP(3) NOT NULL,"used" BOOLEAN NOT NULL DEFAULT false,"created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "OtpToken_pkey" PRIMARY KEY ("id"))`,
-  `CREATE TABLE IF NOT EXISTS "PasswordResetToken" ("id" TEXT NOT NULL,"email" TEXT NOT NULL,"token" TEXT NOT NULL,"expires_at" TIMESTAMP(3) NOT NULL,"used" BOOLEAN NOT NULL DEFAULT false,"created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "PasswordResetToken_pkey" PRIMARY KEY ("id"))`,
-  `CREATE TABLE IF NOT EXISTS "OrgInvite" ("id" TEXT NOT NULL,"org_type" TEXT NOT NULL,"org_id" TEXT NOT NULL,"email" TEXT NOT NULL,"role" TEXT NOT NULL,"token" TEXT NOT NULL,"expires_at" TIMESTAMP(3) NOT NULL,"accepted_at" TIMESTAMP(3),"created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "OrgInvite_pkey" PRIMARY KEY ("id"))`,
+  // OtpToken
+  `CREATE TABLE IF NOT EXISTS "OtpToken" ("id" TEXT NOT NULL,"token" TEXT NOT NULL,"userType" TEXT NOT NULL,"userId" TEXT NOT NULL,"expiresAt" TIMESTAMP(3) NOT NULL,"usedAt" TIMESTAMP(3),"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "OtpToken_pkey" PRIMARY KEY ("id"))`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "OtpToken_token_key" ON "OtpToken"("token")`,
+  // PasswordResetToken
+  `CREATE TABLE IF NOT EXISTS "PasswordResetToken" ("id" TEXT NOT NULL,"token" TEXT NOT NULL,"userType" TEXT NOT NULL,"userId" TEXT NOT NULL,"expiresAt" TIMESTAMP(3) NOT NULL,"usedAt" TIMESTAMP(3),"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "PasswordResetToken_pkey" PRIMARY KEY ("id"))`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "PasswordResetToken_token_key" ON "PasswordResetToken"("token")`,
+  // OrgInvite
+  `CREATE TABLE IF NOT EXISTS "OrgInvite" ("id" TEXT NOT NULL,"token" TEXT NOT NULL,"orgType" TEXT NOT NULL,"orgId" TEXT NOT NULL,"email" TEXT NOT NULL,"role" TEXT NOT NULL,"expiresAt" TIMESTAMP(3) NOT NULL,"acceptedAt" TIMESTAMP(3),"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "OrgInvite_pkey" PRIMARY KEY ("id"))`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "OrgInvite_token_key" ON "OrgInvite"("token")`,
-  `CREATE TABLE IF NOT EXISTS "AgencySubscription" ("id" TEXT NOT NULL,"agency_id" TEXT NOT NULL,"tier" "AgencyTier" NOT NULL DEFAULT 'FREE',"status" "SubStatus" NOT NULL DEFAULT 'ACTIVE',"current_period_start" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,"current_period_end" TIMESTAMP(3),"proposals_used_this_month" INTEGER NOT NULL DEFAULT 0,"hyperpay_subscription_id" TEXT,"created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "AgencySubscription_pkey" PRIMARY KEY ("id"))`,
-  `CREATE TABLE IF NOT EXISTS "CompanySubscription" ("id" TEXT NOT NULL,"company_id" TEXT NOT NULL,"tier" "CompanyTier" NOT NULL DEFAULT 'FREE',"status" "SubStatus" NOT NULL DEFAULT 'ACTIVE',"current_period_start" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,"current_period_end" TIMESTAMP(3),"job_requests_used_this_month" INTEGER NOT NULL DEFAULT 0,"hyperpay_subscription_id" TEXT,"created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "CompanySubscription_pkey" PRIMARY KEY ("id"))`,
-  `CREATE TABLE IF NOT EXISTS "SubscriptionEvent" ("id" TEXT NOT NULL,"entity_type" TEXT NOT NULL,"entity_id" TEXT NOT NULL,"event_type" TEXT NOT NULL,"payload" JSONB,"created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "SubscriptionEvent_pkey" PRIMARY KEY ("id"))`,
-  `CREATE TABLE IF NOT EXISTS "Notification" ("id" TEXT NOT NULL,"user_type" TEXT NOT NULL,"user_id" TEXT NOT NULL,"type" TEXT NOT NULL,"title" TEXT NOT NULL,"body" TEXT NOT NULL,"link" TEXT,"read" BOOLEAN NOT NULL DEFAULT false,"created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "Notification_pkey" PRIMARY KEY ("id"))`,
-  `CREATE TABLE IF NOT EXISTS "MessageThread" ("id" TEXT NOT NULL,"proposal_id" TEXT,"participants" TEXT[],"created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,"updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "MessageThread_pkey" PRIMARY KEY ("id"))`,
-  `CREATE TABLE IF NOT EXISTS "Message" ("id" TEXT NOT NULL,"thread_id" TEXT NOT NULL,"sender_type" TEXT NOT NULL,"sender_id" TEXT NOT NULL,"body" TEXT NOT NULL,"attachments" TEXT[],"read_at" TIMESTAMP(3),"created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "Message_pkey" PRIMARY KEY ("id"))`,
-  `CREATE TABLE IF NOT EXISTS "MatchScore" ("id" TEXT NOT NULL,"job_request_id" TEXT NOT NULL,"agency_id" TEXT NOT NULL,"score" DOUBLE PRECISION NOT NULL,"breakdown" JSONB,"computed_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "MatchScore_pkey" PRIMARY KEY ("id"))`,
-  `CREATE UNIQUE INDEX IF NOT EXISTS "MatchScore_job_request_id_agency_id_key" ON "MatchScore"("job_request_id","agency_id")`,
-  `CREATE TABLE IF NOT EXISTS "EscrowTransaction" ("id" TEXT NOT NULL,"placement_id" TEXT NOT NULL,"type" TEXT NOT NULL,"amount" DOUBLE PRECISION NOT NULL,"reference" TEXT,"created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "EscrowTransaction_pkey" PRIMARY KEY ("id"))`,
-  `CREATE TABLE IF NOT EXISTS "Candidate" ("id" TEXT NOT NULL,"candidate_user_id" TEXT NOT NULL,"created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "Candidate_pkey" PRIMARY KEY ("id"))`,
-  `CREATE UNIQUE INDEX IF NOT EXISTS "Candidate_candidate_user_id_key" ON "Candidate"("candidate_user_id")`,
-  `CREATE TABLE IF NOT EXISTS "CandidateProfile" ("id" TEXT NOT NULL,"candidate_id" TEXT NOT NULL,"headline" TEXT,"summary" TEXT,"city" "SaudiCity","years_experience" INTEGER NOT NULL DEFAULT 0,"is_saudi" BOOLEAN NOT NULL DEFAULT false,"cv_url" TEXT,"avatar_url" TEXT,"salary_expectation_min" INTEGER,"salary_expectation_max" INTEGER,"available_from" TIMESTAMP(3),"sectors" TEXT[],"updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "CandidateProfile_pkey" PRIMARY KEY ("id"))`,
-  `CREATE UNIQUE INDEX IF NOT EXISTS "CandidateProfile_candidate_id_key" ON "CandidateProfile"("candidate_id")`,
-  `CREATE TABLE IF NOT EXISTS "WorkExperience" ("id" TEXT NOT NULL,"candidate_id" TEXT NOT NULL,"title" TEXT NOT NULL,"company" TEXT NOT NULL,"start_date" TIMESTAMP(3) NOT NULL,"end_date" TIMESTAMP(3),"is_current" BOOLEAN NOT NULL DEFAULT false,"description" TEXT,CONSTRAINT "WorkExperience_pkey" PRIMARY KEY ("id"))`,
-  `CREATE TABLE IF NOT EXISTS "Education" ("id" TEXT NOT NULL,"candidate_id" TEXT NOT NULL,"degree" TEXT NOT NULL,"institution" TEXT NOT NULL,"field" TEXT,"graduation_year" INTEGER,CONSTRAINT "Education_pkey" PRIMARY KEY ("id"))`,
-  `CREATE TABLE IF NOT EXISTS "DirectApplication" ("id" TEXT NOT NULL,"profileId" TEXT NOT NULL,"jobRequestId" TEXT NOT NULL,"coverNote" TEXT,"status" "AppStatus" NOT NULL DEFAULT 'SUBMITTED',"appliedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,"updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "DirectApplication_pkey" PRIMARY KEY ("id"))`,
-  `CREATE TABLE IF NOT EXISTS "RatingDetail" ("id" TEXT NOT NULL,"rating_id" TEXT NOT NULL,"dimension" TEXT NOT NULL,"score" INTEGER NOT NULL,"comment" TEXT,CONSTRAINT "RatingDetail_pkey" PRIMARY KEY ("id"))`,
+  // AgencySubscription
+  `CREATE TABLE IF NOT EXISTS "AgencySubscription" ("id" TEXT NOT NULL,"agencyId" TEXT NOT NULL,"tier" "AgencyTier" NOT NULL,"status" "SubStatus" NOT NULL DEFAULT 'ACTIVE',"currentPeriodStart" TIMESTAMP(3) NOT NULL,"currentPeriodEnd" TIMESTAMP(3) NOT NULL,"trialEndsAt" TIMESTAMP(3),"hyperpayToken" TEXT,"cancelledAt" TIMESTAMP(3),"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "AgencySubscription_pkey" PRIMARY KEY ("id"))`,
+  // CompanySubscription
+  `CREATE TABLE IF NOT EXISTS "CompanySubscription" ("id" TEXT NOT NULL,"companyId" TEXT NOT NULL,"tier" "CompanyTier" NOT NULL,"status" "SubStatus" NOT NULL DEFAULT 'ACTIVE',"currentPeriodStart" TIMESTAMP(3) NOT NULL,"currentPeriodEnd" TIMESTAMP(3) NOT NULL,"hyperpayToken" TEXT,"cancelledAt" TIMESTAMP(3),"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "CompanySubscription_pkey" PRIMARY KEY ("id"))`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "CompanySubscription_companyId_key" ON "CompanySubscription"("companyId")`,
+  // SubscriptionEvent
+  `CREATE TABLE IF NOT EXISTS "SubscriptionEvent" ("id" TEXT NOT NULL,"agencySubId" TEXT,"eventType" TEXT NOT NULL,"fromTier" TEXT,"toTier" TEXT,"triggeredBy" TEXT,"occurredAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "SubscriptionEvent_pkey" PRIMARY KEY ("id"))`,
+  // Notification
+  `CREATE TABLE IF NOT EXISTS "Notification" ("id" TEXT NOT NULL,"userId" TEXT NOT NULL,"userType" TEXT NOT NULL,"event" TEXT NOT NULL,"title" TEXT NOT NULL,"body" TEXT NOT NULL,"referenceId" TEXT,"referenceType" TEXT,"channel" TEXT NOT NULL,"readAt" TIMESTAMP(3),"deliveredAt" TIMESTAMP(3),"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "Notification_pkey" PRIMARY KEY ("id"))`,
+  // MessageThread
+  `CREATE TABLE IF NOT EXISTS "MessageThread" ("id" TEXT NOT NULL,"proposalId" TEXT NOT NULL,"companyId" TEXT NOT NULL,"agencyId" TEXT NOT NULL,"lastActivityAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "MessageThread_pkey" PRIMARY KEY ("id"))`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "MessageThread_proposalId_key" ON "MessageThread"("proposalId")`,
+  // Message
+  `CREATE TABLE IF NOT EXISTS "Message" ("id" TEXT NOT NULL,"threadId" TEXT NOT NULL,"senderType" TEXT NOT NULL,"senderId" TEXT NOT NULL,"body" TEXT NOT NULL,"attachments" JSONB,"isInternalNote" BOOLEAN NOT NULL DEFAULT false,"readByCompanyAt" TIMESTAMP(3),"readByAgencyAt" TIMESTAMP(3),"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "Message_pkey" PRIMARY KEY ("id"))`,
+  // MatchScore
+  `CREATE TABLE IF NOT EXISTS "MatchScore" ("id" TEXT NOT NULL,"jobRequestId" TEXT NOT NULL,"agencyId" TEXT NOT NULL,"score" INTEGER NOT NULL,"breakdown" JSONB NOT NULL,"computedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "MatchScore_pkey" PRIMARY KEY ("id"))`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "MatchScore_jobRequestId_agencyId_key" ON "MatchScore"("jobRequestId","agencyId")`,
+  // EscrowTransaction
+  `CREATE TABLE IF NOT EXISTS "EscrowTransaction" ("id" TEXT NOT NULL,"placementId" TEXT NOT NULL,"amount" DOUBLE PRECISION NOT NULL,"currency" TEXT NOT NULL DEFAULT 'SAR',"heldAt" TIMESTAMP(3),"releasedAt" TIMESTAMP(3),"releaseReason" TEXT,"payoutStatus" TEXT NOT NULL DEFAULT 'PENDING',"payoutReference" TEXT,"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "EscrowTransaction_pkey" PRIMARY KEY ("id"))`,
+  // Candidate (agency-managed, not CandidateUser)
+  `CREATE TABLE IF NOT EXISTS "Candidate" ("id" TEXT NOT NULL,"agencyId" TEXT NOT NULL,"fullName" TEXT NOT NULL,"titleCurrent" TEXT,"cvUrl" TEXT,"skills" TEXT[],"yearsExperience" INTEGER,"expectedSalary" DOUBLE PRECISION,"nationality" TEXT,"availabilityStatus" TEXT NOT NULL DEFAULT 'ACTIVE',"consentGiven" BOOLEAN NOT NULL DEFAULT false,"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "Candidate_pkey" PRIMARY KEY ("id"))`,
+  // CandidateProfile (linked to CandidateUser)
+  `CREATE TABLE IF NOT EXISTS "CandidateProfile" ("id" TEXT NOT NULL,"userId" TEXT NOT NULL,"headline" TEXT,"aboutMe" TEXT,"photoUrl" TEXT,"cvUrl" TEXT,"skills" TEXT[],"languages" TEXT[],"expectedSalaryMin" DOUBLE PRECISION,"expectedSalaryMax" DOUBLE PRECISION,"availabilityStatus" TEXT NOT NULL DEFAULT 'OPEN',"visibilityMode" TEXT NOT NULL DEFAULT 'PUBLIC',"profileScore" INTEGER NOT NULL DEFAULT 0,"location" TEXT,"consentGiven" BOOLEAN NOT NULL DEFAULT false,"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,"updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "CandidateProfile_pkey" PRIMARY KEY ("id"))`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "CandidateProfile_userId_key" ON "CandidateProfile"("userId")`,
+  // WorkExperience
+  `CREATE TABLE IF NOT EXISTS "WorkExperience" ("id" TEXT NOT NULL,"profileId" TEXT NOT NULL,"company" TEXT NOT NULL,"title" TEXT NOT NULL,"startDate" TIMESTAMP(3) NOT NULL,"endDate" TIMESTAMP(3),"isCurrent" BOOLEAN NOT NULL DEFAULT false,"description" TEXT,"location" TEXT,CONSTRAINT "WorkExperience_pkey" PRIMARY KEY ("id"))`,
+  // Education
+  `CREATE TABLE IF NOT EXISTS "Education" ("id" TEXT NOT NULL,"profileId" TEXT NOT NULL,"institution" TEXT NOT NULL,"degree" TEXT,"fieldOfStudy" TEXT,"startYear" INTEGER NOT NULL,"endYear" INTEGER,CONSTRAINT "Education_pkey" PRIMARY KEY ("id"))`,
+  // DirectApplication
+  `CREATE TABLE IF NOT EXISTS "DirectApplication" ("id" TEXT NOT NULL,"profileId" TEXT NOT NULL,"jobRequestId" TEXT NOT NULL,"coverNote" VARCHAR(500),"status" "AppStatus" NOT NULL DEFAULT 'SUBMITTED',"aiSummary" TEXT,"matchScore" INTEGER,"appliedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,"statusUpdatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "DirectApplication_pkey" PRIMARY KEY ("id"))`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "DirectApplication_profileId_jobRequestId_key" ON "DirectApplication"("profileId","jobRequestId")`,
+  // RatingDetail
+  `CREATE TABLE IF NOT EXISTS "RatingDetail" ("id" TEXT NOT NULL,"ratingId" TEXT NOT NULL,"speed" INTEGER NOT NULL,"candidateQuality" INTEGER NOT NULL,"communication" INTEGER NOT NULL,"valueForMoney" INTEGER NOT NULL,"overall" INTEGER NOT NULL,CONSTRAINT "RatingDetail_pkey" PRIMARY KEY ("id"))`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "RatingDetail_ratingId_key" ON "RatingDetail"("ratingId")`,
 ];
 
 const V2_FOREIGN_KEYS = [
-  `ALTER TABLE "Message" ADD CONSTRAINT "Message_thread_id_fkey" FOREIGN KEY ("thread_id") REFERENCES "MessageThread"("id") ON DELETE CASCADE ON UPDATE CASCADE`,
-  `ALTER TABLE "EscrowTransaction" ADD CONSTRAINT "EscrowTransaction_placement_id_fkey" FOREIGN KEY ("placement_id") REFERENCES "Placement"("id") ON DELETE RESTRICT ON UPDATE CASCADE`,
-  `ALTER TABLE "CandidateProfile" ADD CONSTRAINT "CandidateProfile_candidate_id_fkey" FOREIGN KEY ("candidate_id") REFERENCES "Candidate"("id") ON DELETE CASCADE ON UPDATE CASCADE`,
-  `ALTER TABLE "WorkExperience" ADD CONSTRAINT "WorkExperience_candidate_id_fkey" FOREIGN KEY ("candidate_id") REFERENCES "Candidate"("id") ON DELETE CASCADE ON UPDATE CASCADE`,
-  `ALTER TABLE "Education" ADD CONSTRAINT "Education_candidate_id_fkey" FOREIGN KEY ("candidate_id") REFERENCES "Candidate"("id") ON DELETE CASCADE ON UPDATE CASCADE`,
-  `ALTER TABLE "RatingDetail" ADD CONSTRAINT "RatingDetail_rating_id_fkey" FOREIGN KEY ("rating_id") REFERENCES "Rating"("id") ON DELETE CASCADE ON UPDATE CASCADE`,
+  `ALTER TABLE "AgencySubscription" ADD CONSTRAINT "AgencySubscription_agencyId_fkey" FOREIGN KEY ("agencyId") REFERENCES "Agency"("id") ON DELETE RESTRICT ON UPDATE CASCADE`,
+  `ALTER TABLE "SubscriptionEvent" ADD CONSTRAINT "SubscriptionEvent_agencySubId_fkey" FOREIGN KEY ("agencySubId") REFERENCES "AgencySubscription"("id") ON DELETE SET NULL ON UPDATE CASCADE`,
+  `ALTER TABLE "MessageThread" ADD CONSTRAINT "MessageThread_proposalId_fkey" FOREIGN KEY ("proposalId") REFERENCES "Proposal"("id") ON DELETE RESTRICT ON UPDATE CASCADE`,
+  `ALTER TABLE "Message" ADD CONSTRAINT "Message_threadId_fkey" FOREIGN KEY ("threadId") REFERENCES "MessageThread"("id") ON DELETE CASCADE ON UPDATE CASCADE`,
+  `ALTER TABLE "EscrowTransaction" ADD CONSTRAINT "EscrowTransaction_placementId_fkey" FOREIGN KEY ("placementId") REFERENCES "Placement"("id") ON DELETE RESTRICT ON UPDATE CASCADE`,
+  `ALTER TABLE "CandidateProfile" ADD CONSTRAINT "CandidateProfile_userId_fkey" FOREIGN KEY ("userId") REFERENCES "CandidateUser"("id") ON DELETE CASCADE ON UPDATE CASCADE`,
+  `ALTER TABLE "WorkExperience" ADD CONSTRAINT "WorkExperience_profileId_fkey" FOREIGN KEY ("profileId") REFERENCES "CandidateProfile"("id") ON DELETE CASCADE ON UPDATE CASCADE`,
+  `ALTER TABLE "Education" ADD CONSTRAINT "Education_profileId_fkey" FOREIGN KEY ("profileId") REFERENCES "CandidateProfile"("id") ON DELETE CASCADE ON UPDATE CASCADE`,
+  `ALTER TABLE "DirectApplication" ADD CONSTRAINT "DirectApplication_profileId_fkey" FOREIGN KEY ("profileId") REFERENCES "CandidateProfile"("id") ON DELETE CASCADE ON UPDATE CASCADE`,
+  `ALTER TABLE "RatingDetail" ADD CONSTRAINT "RatingDetail_ratingId_fkey" FOREIGN KEY ("ratingId") REFERENCES "Rating"("id") ON DELETE CASCADE ON UPDATE CASCADE`,
 ];
 
 export async function GET(request: NextRequest) {
@@ -163,6 +213,11 @@ export async function GET(request: NextRequest) {
     }
     for (const sql of FOREIGN_KEYS) {
       try { await prisma.$executeRawUnsafe(sql); } catch { /* already exists */ }
+    }
+
+    // Drop V2 tables that may have been created with wrong schemas, then recreate
+    for (const sql of V2_DROP_TABLES) {
+      try { await prisma.$executeRawUnsafe(sql); } catch { /* ignore */ }
     }
 
     // V2 migrations
