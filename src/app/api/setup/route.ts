@@ -89,6 +89,63 @@ const FOREIGN_KEYS = [
   `ALTER TABLE "Subscription" ADD CONSTRAINT "Subscription_agency_id_fkey" FOREIGN KEY ("agency_id") REFERENCES "Agency"("id") ON DELETE RESTRICT ON UPDATE CASCADE`,
 ];
 
+const V2_ENUMS = [
+  `DO $$ BEGIN CREATE TYPE "AgencyTier" AS ENUM ('FREE','BASIC','PRO','ELITE'); EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
+  `DO $$ BEGIN CREATE TYPE "CompanyTier" AS ENUM ('FREE','BASIC','PRO','ENTERPRISE'); EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
+  `DO $$ BEGIN CREATE TYPE "SubStatus" AS ENUM ('ACTIVE','CANCELLED','PAST_DUE','TRIALING'); EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
+  `DO $$ BEGIN CREATE TYPE "AppStatus" AS ENUM ('SUBMITTED','UNDER_REVIEW','INTERVIEW_INVITED','REJECTED','OFFER_MADE'); EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
+];
+
+const V2_ALTER_COLUMNS = [
+  `ALTER TABLE "Agency" ADD COLUMN IF NOT EXISTS "publicSlug" TEXT`,
+  `ALTER TABLE "Agency" ADD COLUMN IF NOT EXISTS "bio" TEXT`,
+  `ALTER TABLE "JobRequest" ADD COLUMN IF NOT EXISTS "sla_alert_sent_at" TIMESTAMP(3)`,
+  `ALTER TABLE "Invoice" ADD COLUMN IF NOT EXISTS "zatcaUUID" TEXT`,
+  `ALTER TABLE "Invoice" ADD COLUMN IF NOT EXISTS "zatcaQrCode" TEXT`,
+  `ALTER TABLE "Invoice" ADD COLUMN IF NOT EXISTS "installmentPlan" BOOLEAN NOT NULL DEFAULT false`,
+  `ALTER TABLE "Invoice" ADD COLUMN IF NOT EXISTS "installmentCount" INTEGER NOT NULL DEFAULT 1`,
+  `ALTER TABLE "Invoice" ADD COLUMN IF NOT EXISTS "installmentsPaid" INTEGER NOT NULL DEFAULT 0`,
+  `ALTER TABLE "Placement" ADD COLUMN IF NOT EXISTS "escrowHeldAt" TIMESTAMP(3)`,
+  `ALTER TABLE "Placement" ADD COLUMN IF NOT EXISTS "escrowReleasedAt" TIMESTAMP(3)`,
+  `ALTER TABLE "Placement" ADD COLUMN IF NOT EXISTS "guaranteeExpiresAt" TIMESTAMP(3)`,
+  `ALTER TABLE "CandidateSubmission" ADD COLUMN IF NOT EXISTS "linkedCandidateId" TEXT`,
+];
+
+const V2_TABLES = [
+  `CREATE TABLE IF NOT EXISTS "CandidateUser" ("id" TEXT NOT NULL,"email" TEXT NOT NULL,"password_hash" TEXT NOT NULL,"full_name" TEXT NOT NULL,"phone" TEXT,"email_verified" BOOLEAN NOT NULL DEFAULT false,"created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "CandidateUser_pkey" PRIMARY KEY ("id"))`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "CandidateUser_email_key" ON "CandidateUser"("email")`,
+  `CREATE TABLE IF NOT EXISTS "OtpToken" ("id" TEXT NOT NULL,"email" TEXT NOT NULL,"token" TEXT NOT NULL,"expires_at" TIMESTAMP(3) NOT NULL,"used" BOOLEAN NOT NULL DEFAULT false,"created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "OtpToken_pkey" PRIMARY KEY ("id"))`,
+  `CREATE TABLE IF NOT EXISTS "PasswordResetToken" ("id" TEXT NOT NULL,"email" TEXT NOT NULL,"token" TEXT NOT NULL,"expires_at" TIMESTAMP(3) NOT NULL,"used" BOOLEAN NOT NULL DEFAULT false,"created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "PasswordResetToken_pkey" PRIMARY KEY ("id"))`,
+  `CREATE TABLE IF NOT EXISTS "OrgInvite" ("id" TEXT NOT NULL,"org_type" TEXT NOT NULL,"org_id" TEXT NOT NULL,"email" TEXT NOT NULL,"role" TEXT NOT NULL,"token" TEXT NOT NULL,"expires_at" TIMESTAMP(3) NOT NULL,"accepted_at" TIMESTAMP(3),"created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "OrgInvite_pkey" PRIMARY KEY ("id"))`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "OrgInvite_token_key" ON "OrgInvite"("token")`,
+  `CREATE TABLE IF NOT EXISTS "AgencySubscription" ("id" TEXT NOT NULL,"agency_id" TEXT NOT NULL,"tier" "AgencyTier" NOT NULL DEFAULT 'FREE',"status" "SubStatus" NOT NULL DEFAULT 'ACTIVE',"current_period_start" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,"current_period_end" TIMESTAMP(3),"proposals_used_this_month" INTEGER NOT NULL DEFAULT 0,"hyperpay_subscription_id" TEXT,"created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "AgencySubscription_pkey" PRIMARY KEY ("id"))`,
+  `CREATE TABLE IF NOT EXISTS "CompanySubscription" ("id" TEXT NOT NULL,"company_id" TEXT NOT NULL,"tier" "CompanyTier" NOT NULL DEFAULT 'FREE',"status" "SubStatus" NOT NULL DEFAULT 'ACTIVE',"current_period_start" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,"current_period_end" TIMESTAMP(3),"job_requests_used_this_month" INTEGER NOT NULL DEFAULT 0,"hyperpay_subscription_id" TEXT,"created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "CompanySubscription_pkey" PRIMARY KEY ("id"))`,
+  `CREATE TABLE IF NOT EXISTS "SubscriptionEvent" ("id" TEXT NOT NULL,"entity_type" TEXT NOT NULL,"entity_id" TEXT NOT NULL,"event_type" TEXT NOT NULL,"payload" JSONB,"created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "SubscriptionEvent_pkey" PRIMARY KEY ("id"))`,
+  `CREATE TABLE IF NOT EXISTS "Notification" ("id" TEXT NOT NULL,"user_type" TEXT NOT NULL,"user_id" TEXT NOT NULL,"type" TEXT NOT NULL,"title" TEXT NOT NULL,"body" TEXT NOT NULL,"link" TEXT,"read" BOOLEAN NOT NULL DEFAULT false,"created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "Notification_pkey" PRIMARY KEY ("id"))`,
+  `CREATE TABLE IF NOT EXISTS "MessageThread" ("id" TEXT NOT NULL,"proposal_id" TEXT,"participants" TEXT[],"created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,"updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "MessageThread_pkey" PRIMARY KEY ("id"))`,
+  `CREATE TABLE IF NOT EXISTS "Message" ("id" TEXT NOT NULL,"thread_id" TEXT NOT NULL,"sender_type" TEXT NOT NULL,"sender_id" TEXT NOT NULL,"body" TEXT NOT NULL,"attachments" TEXT[],"read_at" TIMESTAMP(3),"created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "Message_pkey" PRIMARY KEY ("id"))`,
+  `CREATE TABLE IF NOT EXISTS "MatchScore" ("id" TEXT NOT NULL,"job_request_id" TEXT NOT NULL,"agency_id" TEXT NOT NULL,"score" DOUBLE PRECISION NOT NULL,"breakdown" JSONB,"computed_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "MatchScore_pkey" PRIMARY KEY ("id"))`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "MatchScore_job_request_id_agency_id_key" ON "MatchScore"("job_request_id","agency_id")`,
+  `CREATE TABLE IF NOT EXISTS "EscrowTransaction" ("id" TEXT NOT NULL,"placement_id" TEXT NOT NULL,"type" TEXT NOT NULL,"amount" DOUBLE PRECISION NOT NULL,"reference" TEXT,"created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "EscrowTransaction_pkey" PRIMARY KEY ("id"))`,
+  `CREATE TABLE IF NOT EXISTS "Candidate" ("id" TEXT NOT NULL,"candidate_user_id" TEXT NOT NULL,"created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "Candidate_pkey" PRIMARY KEY ("id"))`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "Candidate_candidate_user_id_key" ON "Candidate"("candidate_user_id")`,
+  `CREATE TABLE IF NOT EXISTS "CandidateProfile" ("id" TEXT NOT NULL,"candidate_id" TEXT NOT NULL,"headline" TEXT,"summary" TEXT,"city" "SaudiCity","years_experience" INTEGER NOT NULL DEFAULT 0,"is_saudi" BOOLEAN NOT NULL DEFAULT false,"cv_url" TEXT,"avatar_url" TEXT,"salary_expectation_min" INTEGER,"salary_expectation_max" INTEGER,"available_from" TIMESTAMP(3),"sectors" TEXT[],"updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "CandidateProfile_pkey" PRIMARY KEY ("id"))`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "CandidateProfile_candidate_id_key" ON "CandidateProfile"("candidate_id")`,
+  `CREATE TABLE IF NOT EXISTS "WorkExperience" ("id" TEXT NOT NULL,"candidate_id" TEXT NOT NULL,"title" TEXT NOT NULL,"company" TEXT NOT NULL,"start_date" TIMESTAMP(3) NOT NULL,"end_date" TIMESTAMP(3),"is_current" BOOLEAN NOT NULL DEFAULT false,"description" TEXT,CONSTRAINT "WorkExperience_pkey" PRIMARY KEY ("id"))`,
+  `CREATE TABLE IF NOT EXISTS "Education" ("id" TEXT NOT NULL,"candidate_id" TEXT NOT NULL,"degree" TEXT NOT NULL,"institution" TEXT NOT NULL,"field" TEXT,"graduation_year" INTEGER,CONSTRAINT "Education_pkey" PRIMARY KEY ("id"))`,
+  `CREATE TABLE IF NOT EXISTS "DirectApplication" ("id" TEXT NOT NULL,"profileId" TEXT NOT NULL,"jobRequestId" TEXT NOT NULL,"coverNote" TEXT,"status" "AppStatus" NOT NULL DEFAULT 'SUBMITTED',"appliedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,"updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "DirectApplication_pkey" PRIMARY KEY ("id"))`,
+  `CREATE TABLE IF NOT EXISTS "RatingDetail" ("id" TEXT NOT NULL,"rating_id" TEXT NOT NULL,"dimension" TEXT NOT NULL,"score" INTEGER NOT NULL,"comment" TEXT,CONSTRAINT "RatingDetail_pkey" PRIMARY KEY ("id"))`,
+];
+
+const V2_FOREIGN_KEYS = [
+  `ALTER TABLE "Message" ADD CONSTRAINT "Message_thread_id_fkey" FOREIGN KEY ("thread_id") REFERENCES "MessageThread"("id") ON DELETE CASCADE ON UPDATE CASCADE`,
+  `ALTER TABLE "EscrowTransaction" ADD CONSTRAINT "EscrowTransaction_placement_id_fkey" FOREIGN KEY ("placement_id") REFERENCES "Placement"("id") ON DELETE RESTRICT ON UPDATE CASCADE`,
+  `ALTER TABLE "CandidateProfile" ADD CONSTRAINT "CandidateProfile_candidate_id_fkey" FOREIGN KEY ("candidate_id") REFERENCES "Candidate"("id") ON DELETE CASCADE ON UPDATE CASCADE`,
+  `ALTER TABLE "WorkExperience" ADD CONSTRAINT "WorkExperience_candidate_id_fkey" FOREIGN KEY ("candidate_id") REFERENCES "Candidate"("id") ON DELETE CASCADE ON UPDATE CASCADE`,
+  `ALTER TABLE "Education" ADD CONSTRAINT "Education_candidate_id_fkey" FOREIGN KEY ("candidate_id") REFERENCES "Candidate"("id") ON DELETE CASCADE ON UPDATE CASCADE`,
+  `ALTER TABLE "RatingDetail" ADD CONSTRAINT "RatingDetail_rating_id_fkey" FOREIGN KEY ("rating_id") REFERENCES "Rating"("id") ON DELETE CASCADE ON UPDATE CASCADE`,
+];
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   if (searchParams.get("secret") !== SECRET) {
@@ -107,7 +164,21 @@ export async function GET(request: NextRequest) {
       try { await prisma.$executeRawUnsafe(sql); } catch { /* already exists */ }
     }
 
-    const results: string[] = ["✅ Schema created"];
+    // V2 migrations
+    for (const sql of V2_ENUMS) {
+      await prisma.$executeRawUnsafe(sql);
+    }
+    for (const sql of V2_ALTER_COLUMNS) {
+      try { await prisma.$executeRawUnsafe(sql); } catch { /* already exists */ }
+    }
+    for (const sql of V2_TABLES) {
+      try { await prisma.$executeRawUnsafe(sql); } catch { /* already exists */ }
+    }
+    for (const sql of V2_FOREIGN_KEYS) {
+      try { await prisma.$executeRawUnsafe(sql); } catch { /* already exists */ }
+    }
+
+    const results: string[] = ["✅ V1+V2 Schema created"];
 
     // Seed Admin
     const adminExists = await prisma.adminUser.findUnique({ where: { email: "admin@talenthunt.sa" } });
