@@ -97,21 +97,22 @@ const V2_ENUMS = [
 ];
 
 const V2_ALTER_COLUMNS = [
-  `ALTER TABLE "Agency" ADD COLUMN IF NOT EXISTS "publicSlug" TEXT`,
+  `ALTER TABLE "Agency" ADD COLUMN IF NOT EXISTS "public_slug" TEXT`,
   `ALTER TABLE "Agency" ADD COLUMN IF NOT EXISTS "bio" TEXT`,
   `ALTER TABLE "JobRequest" ADD COLUMN IF NOT EXISTS "sla_alert_sent_at" TIMESTAMP(3)`,
   `ALTER TABLE "Invoice" ADD COLUMN IF NOT EXISTS "zatcaUUID" TEXT`,
   `ALTER TABLE "Invoice" ADD COLUMN IF NOT EXISTS "zatcaQrCode" TEXT`,
-  `ALTER TABLE "Invoice" ADD COLUMN IF NOT EXISTS "installmentPlan" BOOLEAN NOT NULL DEFAULT false`,
-  `ALTER TABLE "Invoice" ADD COLUMN IF NOT EXISTS "installmentCount" INTEGER NOT NULL DEFAULT 1`,
-  `ALTER TABLE "Invoice" ADD COLUMN IF NOT EXISTS "installmentsPaid" INTEGER NOT NULL DEFAULT 0`,
-  `ALTER TABLE "Placement" ADD COLUMN IF NOT EXISTS "escrowHeldAt" TIMESTAMP(3)`,
-  `ALTER TABLE "Placement" ADD COLUMN IF NOT EXISTS "escrowReleasedAt" TIMESTAMP(3)`,
-  `ALTER TABLE "Placement" ADD COLUMN IF NOT EXISTS "guaranteeExpiresAt" TIMESTAMP(3)`,
+  `ALTER TABLE "Invoice" ADD COLUMN IF NOT EXISTS "installment_plan" BOOLEAN NOT NULL DEFAULT false`,
+  `ALTER TABLE "Invoice" ADD COLUMN IF NOT EXISTS "installment_count" INTEGER NOT NULL DEFAULT 1`,
+  `ALTER TABLE "Invoice" ADD COLUMN IF NOT EXISTS "installments_paid" INTEGER NOT NULL DEFAULT 0`,
+  `ALTER TABLE "Placement" ADD COLUMN IF NOT EXISTS "escrow_held_at" TIMESTAMP(3)`,
+  `ALTER TABLE "Placement" ADD COLUMN IF NOT EXISTS "escrow_released_at" TIMESTAMP(3)`,
+  `ALTER TABLE "Placement" ADD COLUMN IF NOT EXISTS "guarantee_expires_at" TIMESTAMP(3)`,
   `ALTER TABLE "CandidateSubmission" ADD COLUMN IF NOT EXISTS "linkedCandidateId" TEXT`,
 ];
 
 const V2_TABLES = [
+  `CREATE UNIQUE INDEX IF NOT EXISTS "Agency_public_slug_key" ON "Agency"("public_slug")`,
   `CREATE TABLE IF NOT EXISTS "CandidateUser" ("id" TEXT NOT NULL,"email" TEXT NOT NULL,"password_hash" TEXT NOT NULL,"full_name" TEXT NOT NULL,"phone" TEXT,"email_verified" BOOLEAN NOT NULL DEFAULT false,"created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "CandidateUser_pkey" PRIMARY KEY ("id"))`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "CandidateUser_email_key" ON "CandidateUser"("email")`,
   `CREATE TABLE IF NOT EXISTS "OtpToken" ("id" TEXT NOT NULL,"email" TEXT NOT NULL,"token" TEXT NOT NULL,"expires_at" TIMESTAMP(3) NOT NULL,"used" BOOLEAN NOT NULL DEFAULT false,"created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "OtpToken_pkey" PRIMARY KEY ("id"))`,
