@@ -3,7 +3,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 
-export type UserType = "COMPANY" | "AGENCY" | "ADMIN";
+export type UserType = "COMPANY" | "AGENCY" | "ADMIN" | "CANDIDATE";
 
 export interface AuthUser {
   id: string;
@@ -79,6 +79,19 @@ export const authOptions: NextAuthOptions = {
             userType: "AGENCY" as UserType,
             role: user.role,
             entityId: user.agency_id,
+          };
+        }
+
+        if (userType === "CANDIDATE") {
+          const candidate = await prisma.candidateUser.findUnique({ where: { email } });
+          if (!candidate) return null;
+          const valid = await bcrypt.compare(password, candidate.passwordHash);
+          if (!valid) return null;
+          return {
+            id: candidate.id,
+            email: candidate.email,
+            name: `${candidate.firstName} ${candidate.lastName}`,
+            userType: "CANDIDATE" as UserType,
           };
         }
 

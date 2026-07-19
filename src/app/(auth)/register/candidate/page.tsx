@@ -177,7 +177,7 @@ export default function CandidateRegistrationPage() {
 
           <p className="text-center text-sm text-gray-600 mt-4">
             لديك حساب بالفعل؟{" "}
-            <Link href="/login" className="text-purple-600 hover:underline font-medium">
+            <Link href="/login/candidate" className="text-purple-600 hover:underline font-medium">
               تسجيل الدخول
             </Link>
           </p>
