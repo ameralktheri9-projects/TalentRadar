@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams } from "next/navigation";
+import Pusher from "pusher-js";
 
 interface Message {
   id: string;
@@ -39,9 +40,28 @@ export default function AgencyThreadPage() {
 
   useEffect(() => {
     load();
+
+    const pusherKey = process.env.NEXT_PUBLIC_PUSHER_KEY;
+    if (pusherKey && threadId) {
+      const pusher = new Pusher(pusherKey, {
+        cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER ?? "ap2",
+      });
+      const channel = pusher.subscribe(`thread-${threadId}`);
+      channel.bind("new-message", (data: Message) => {
+        setMessages((prev) => {
+          if (prev.find((m) => m.id === data.id)) return prev;
+          return [...prev, data];
+        });
+      });
+      return () => {
+        channel.unbind_all();
+        pusher.unsubscribe(`thread-${threadId}`);
+      };
+    }
+
     const interval = setInterval(load, 5000);
     return () => clearInterval(interval);
-  }, [load]);
+  }, [load, threadId]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });

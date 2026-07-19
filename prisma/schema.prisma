@@ -182,6 +182,9 @@ model Company {
   total_employee_count Int             @default(0)
   status               CompanyStatus   @default(PENDING)
   created_at           DateTime        @default(now())
+  referralCode         String?         @unique
+  referredByCode       String?
+  referralCredits      Float           @default(0)
 
   users                CompanyUser[]
   job_requests         JobRequest[]
@@ -198,6 +201,7 @@ model CompanyUser {
   role          CompanyUserRole
   is_primary    Boolean         @default(false)
   status        UserStatus      @default(INVITED)
+  department    String?
 
   company       Company         @relation(fields: [company_id], references: [id])
   job_requests  JobRequest[]
@@ -225,6 +229,10 @@ model Agency {
   response_rate         Float            @default(0)
   status                AgencyStatus     @default(PENDING)
   created_at            DateTime         @default(now())
+  referralCode          String?          @unique
+  referredByCode        String?
+  referralCredits       Float            @default(0)
+  notifiedRfps          String[]
 
   users                 AgencyUser[]
   proposals             Proposal[]
@@ -423,11 +431,15 @@ model Subscription {
 }
 
 model AdminUser {
-  id            String   @id @default(uuid())
+  id            String    @id @default(uuid())
   full_name     String
-  email         String   @unique
+  email         String    @unique
   password_hash String
-  created_at    DateTime @default(now())
+  created_at    DateTime  @default(now())
+  totpSecret    String?
+  totpEnabled   Boolean   @default(false)
+  lastLoginAt   DateTime?
+  lastLoginIp   String?
 }
 
 model CandidateUser {
@@ -439,6 +451,8 @@ model CandidateUser {
   phone           String?
   emailVerifiedAt DateTime?
   createdAt       DateTime  @default(now())
+  referralCode    String?   @unique
+  referredByCode  String?
   profile         CandidateProfile?
 }
 
@@ -693,4 +707,15 @@ enum AppStatus {
   INTERVIEW_INVITED
   REJECTED
   OFFER_MADE
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  adminId    String
+  action     String
+  targetId   String?
+  targetType String?
+  metadata   Json?
+  ip         String?
+  createdAt  DateTime @default(now())
 }

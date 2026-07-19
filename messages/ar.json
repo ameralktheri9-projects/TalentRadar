@@ -1,0 +1,134 @@
+{
+  "nav": {
+    "dashboard": "لوحة التحكم",
+    "agencies": "الوكالات",
+    "jobRequests": "طلبات التوظيف",
+    "candidates": "المرشحون",
+    "messages": "الرسائل",
+    "invoices": "الفواتير",
+    "settings": "الإعدادات",
+    "logout": "تسجيل الخروج",
+    "placements": "التعيينات",
+    "analytics": "التحليلات",
+    "commissions": "العمولات",
+    "rfpInbox": "صندوق الطلبات",
+    "profile": "الملف الشخصي",
+    "users": "المستخدمون",
+    "subscription": "الاشتراك",
+    "finance": "المالية",
+    "sla": "متابعة SLA",
+    "matching": "إعداد التطابق",
+    "verification": "قائمة التحقق",
+    "referral": "برنامج الإحالة",
+    "jobs": "الوظائف",
+    "applications": "طلباتي"
+  },
+  "auth": {
+    "login": "تسجيل الدخول",
+    "register": "إنشاء حساب",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "forgotPassword": "نسيت كلمة المرور؟",
+    "resetPassword": "إعادة تعيين كلمة المرور",
+    "verifyEmail": "التحقق من البريد الإلكتروني",
+    "otpSent": "تم إرسال رمز التحقق إلى بريدك الإلكتروني",
+    "enterOtp": "أدخل رمز التحقق المكون من 6 أرقام",
+    "loginAsCompany": "تسجيل دخول الشركة",
+    "loginAsAgency": "تسجيل دخول ��لوكالة",
+    "loginAsCandidate": "تسجيل دخول المرشح",
+    "loginAsAdmin": "تسجيل دخول المدير"
+  },
+  "jobRequest": {
+    "title": "المسمى الوظيفي",
+    "sector": "القطاع",
+    "salaryRange": "نطاق الراتب",
+    "urgency": "الأولوية",
+    "create": "إنشاء طلب توظيف",
+    "status": {
+      "open": "مفتوح",
+      "inProgress": "قيد التنفيذ",
+      "closed": "مغلق",
+      "cancelled": "ملغى"
+    }
+  },
+  "proposal": {
+    "submit": "تقديم عرض",
+    "fee": "نسبة الرسوم",
+    "timeline": "المدة الزمنية المقدرة",
+    "accept": "قبول العرض",
+    "reject": "رفض العرض"
+  },
+  "subscription": {
+    "currentPlan": "الخطة الحالية",
+    "upgrade": "ترقية الخطة",
+    "cancel": "إلغاء الاشتراك",
+    "renewsOn": "تجديد في",
+    "usageThisMonth": "الاستخدام هذا الشهر"
+  },
+  "candidate": {
+    "headline": "المسمى المهني",
+    "skills": "المهارات",
+    "experience": "سنوات الخبرة",
+    "expectedSalary": "الراتب المتوقع",
+    "availability": {
+      "open": "متاح للعمل",
+      "passive": "منفتح على الفرص",
+      "unavailable": "غير متاح"
+    },
+    "applyNow": "تقديم الطلب",
+    "applied": "تم التقديم"
+  },
+  "invoice": {
+    "invoiceNo": "رقم الفاتورة",
+    "issueDate": "تاريخ الإصدار",
+    "dueDate": "تاريخ الاستحقاق",
+    "amount": "المبلغ",
+    "vat": "ضريبة القيمة المضافة (15%)",
+    "total": "الإجمالي",
+    "download": "تنزيل PDF",
+    "pay": "الدفع الآن",
+    "status": {
+      "pending": "قيد الانتظار",
+      "paid": "مدفوعة",
+      "overdue": "متأخرة",
+      "draft": "مسودة",
+      "issued": "مُصدرة",
+      "disputed": "متنازع عليها",
+      "refunded": "مستردة"
+    }
+  },
+  "referral": {
+    "title": "برنامج الإحالة",
+    "yourLink": "رابط الإحالة الخاص بك",
+    "referred": "الأشخاص المُحالون",
+    "earned": "الرصيد المكتسب",
+    "shareWhatsApp": "مشاركة عبر واتساب",
+    "shareLinkedIn": "مشاركة عبر لينكدإن",
+    "copyLink": "نسخ الرابط",
+    "copied": "تم النسخ!",
+    "howItWorks": "كيف يعمل البرنامج",
+    "step1": "شارك رابط الإحالة مع زملائك",
+    "step2": "يسجلون ويكملون أول دفعة",
+    "step3": "تحصل على 500 ريال رصيد"
+  },
+  "common": {
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "confirm": "تأكيد",
+    "delete": "حذف",
+    "edit": "تعديل",
+    "view": "عرض",
+    "search": "بحث",
+    "filter": "تصفية",
+    "loading": "جارٍ التحميل...",
+    "noResults": "لا ��وجد نتائج",
+    "error": "حدث خطأ",
+    "success": "تمت العملية بنجاح",
+    "sar": "ريال",
+    "back": "رجوع",
+    "next": "التالي",
+    "previous": "السابق",
+    "submit": "إرسال",
+    "close": "إغلاق"
+  }
+}

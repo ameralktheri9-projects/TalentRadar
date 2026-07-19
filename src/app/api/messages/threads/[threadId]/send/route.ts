@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions, AuthUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createNotification } from "@/lib/notifications";
+import { triggerPusher } from "@/lib/pusher";
 
 export async function POST(
   req: NextRequest,
@@ -46,6 +47,16 @@ export async function POST(
     await prisma.messageThread.update({
       where: { id: params.threadId },
       data: { lastActivityAt: new Date() },
+    });
+
+    // Real-time: push message to Pusher channel (non-fatal if Pusher not configured)
+    await triggerPusher(`thread-${params.threadId}`, "new-message", {
+      id: message.id,
+      body: message.body,
+      senderType: message.senderType,
+      senderId: message.senderId,
+      createdAt: message.createdAt,
+      isInternalNote: message.isInternalNote,
     });
 
     // Notify the other party

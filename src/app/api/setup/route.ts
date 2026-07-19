@@ -107,7 +107,44 @@ export async function GET(request: NextRequest) {
       try { await prisma.$executeRawUnsafe(sql); } catch { /* already exists */ }
     }
 
-    const results: string[] = ["✅ Schema created"];
+    // V3 additive schema changes — safe to run multiple times (ADD COLUMN IF NOT EXISTS)
+    const V3_ALTER = [
+      // Company: referral program
+      `ALTER TABLE "Company" ADD COLUMN IF NOT EXISTS "referralCode" TEXT UNIQUE`,
+      `ALTER TABLE "Company" ADD COLUMN IF NOT EXISTS "referredByCode" TEXT`,
+      `ALTER TABLE "Company" ADD COLUMN IF NOT EXISTS "referralCredits" DOUBLE PRECISION NOT NULL DEFAULT 0`,
+      // Agency: referral + notifiedRfps
+      `ALTER TABLE "Agency" ADD COLUMN IF NOT EXISTS "referralCode" TEXT UNIQUE`,
+      `ALTER TABLE "Agency" ADD COLUMN IF NOT EXISTS "referredByCode" TEXT`,
+      `ALTER TABLE "Agency" ADD COLUMN IF NOT EXISTS "referralCredits" DOUBLE PRECISION NOT NULL DEFAULT 0`,
+      `ALTER TABLE "Agency" ADD COLUMN IF NOT EXISTS "notifiedRfps" TEXT[] NOT NULL DEFAULT '{}'`,
+      // CompanyUser: department for BU_MANAGER
+      `ALTER TABLE "CompanyUser" ADD COLUMN IF NOT EXISTS "department" TEXT`,
+      // AdminUser: TOTP + login tracking
+      `ALTER TABLE "AdminUser" ADD COLUMN IF NOT EXISTS "totpSecret" TEXT`,
+      `ALTER TABLE "AdminUser" ADD COLUMN IF NOT EXISTS "totpEnabled" BOOLEAN NOT NULL DEFAULT FALSE`,
+      `ALTER TABLE "AdminUser" ADD COLUMN IF NOT EXISTS "lastLoginAt" TIMESTAMP`,
+      `ALTER TABLE "AdminUser" ADD COLUMN IF NOT EXISTS "lastLoginIp" TEXT`,
+      // CandidateUser: referral
+      `ALTER TABLE "CandidateUser" ADD COLUMN IF NOT EXISTS "referralCode" TEXT UNIQUE`,
+      `ALTER TABLE "CandidateUser" ADD COLUMN IF NOT EXISTS "referredByCode" TEXT`,
+      // AuditLog table
+      `CREATE TABLE IF NOT EXISTS "AuditLog" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "adminId" TEXT NOT NULL,
+        "action" TEXT NOT NULL,
+        "targetId" TEXT,
+        "targetType" TEXT,
+        "metadata" JSONB,
+        "ip" TEXT,
+        "createdAt" TIMESTAMP NOT NULL DEFAULT NOW()
+      )`,
+    ];
+    for (const sql of V3_ALTER) {
+      try { await prisma.$executeRawUnsafe(sql); } catch { /* column may already exist */ }
+    }
+
+    const results: string[] = ["✅ Schema created", "✅ V3 schema applied"];
 
     // Seed Admin
     const adminExists = await prisma.adminUser.findUnique({ where: { email: "admin@talenthunt.sa" } });
