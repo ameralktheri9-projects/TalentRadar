@@ -37,27 +37,27 @@ export const authOptions: NextAuthOptions = {
         const { email, password, userType } = credentials;
 
         // Impersonation: password is a one-time JWT issued by /api/admin/impersonate/apply
-        if (password.length > 50 && !password.startsWith("$2")) {
+        // JWT tokens start with "eyJ" (base64 encoded header)
+        if (password.startsWith("eyJ")) {
           try {
             const { payload } = await jose.jwtVerify(password, IMPERSONATE_SECRET);
             const p = payload as { userId?: string; userType?: string; oneTime?: boolean };
-            if (!p.oneTime || !p.userId || !p.userType) throw new Error("invalid");
-            if (p.userType === "COMPANY") {
-              const u = await prisma.companyUser.findUnique({
-                where: { id: p.userId }, include: { company: true },
-              });
-              if (!u) return null;
-              return { id: u.id, email: u.email, name: u.full_name, userType: "COMPANY" as UserType, role: u.role, entityId: u.company_id };
-            }
-            if (p.userType === "AGENCY") {
-              const u = await prisma.agencyUser.findUnique({
-                where: { id: p.userId }, include: { agency: true },
-              });
-              if (!u) return null;
-              return { id: u.id, email: u.email, name: u.full_name, userType: "AGENCY" as UserType, role: u.role, entityId: u.agency_id };
+            if (p.oneTime && p.userId && p.userType) {
+              if (p.userType === "COMPANY") {
+                const u = await prisma.companyUser.findUnique({
+                  where: { id: p.userId }, include: { company: true },
+                });
+                if (u) return { id: u.id, email: u.email, name: u.full_name, userType: "COMPANY" as UserType, role: u.role, entityId: u.company_id };
+              }
+              if (p.userType === "AGENCY") {
+                const u = await prisma.agencyUser.findUnique({
+                  where: { id: p.userId }, include: { agency: true },
+                });
+                if (u) return { id: u.id, email: u.email, name: u.full_name, userType: "AGENCY" as UserType, role: u.role, entityId: u.agency_id };
+              }
             }
           } catch {
-            return null;
+            // not a valid impersonation token — fall through to normal auth
           }
         }
 
