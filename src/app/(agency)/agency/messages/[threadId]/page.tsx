@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams } from "next/navigation";
 
 interface Message {
@@ -28,18 +28,20 @@ export default function AgencyThreadPage() {
   const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  async function load() {
+  const load = useCallback(async () => {
     const res = await fetch(`/api/messages/threads/${threadId}`);
     if (res.ok) {
       const data = await res.json();
       setThread(data.thread);
       setMessages(data.messages ?? []);
     }
-  }
+  }, [threadId]);
 
   useEffect(() => {
     load();
-  }, [threadId]);
+    const interval = setInterval(load, 5000);
+    return () => clearInterval(interval);
+  }, [load]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
