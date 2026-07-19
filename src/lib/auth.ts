@@ -8,7 +8,7 @@ const IMPERSONATE_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET ?? process.env.NEXTAUTH_SECRET ?? "fallback-secret"
 );
 
-export type UserType = "COMPANY" | "AGENCY" | "ADMIN";
+export type UserType = "COMPANY" | "AGENCY" | "ADMIN" | "CANDIDATE";
 
 export interface AuthUser {
   id: string;
@@ -109,6 +109,19 @@ export const authOptions: NextAuthOptions = {
             userType: "AGENCY" as UserType,
             role: user.role,
             entityId: user.agency_id,
+          };
+        }
+
+        if (userType === "CANDIDATE") {
+          const user = await prisma.candidateUser.findUnique({ where: { email } });
+          if (!user) return null;
+          const valid = await bcrypt.compare(password, user.passwordHash);
+          if (!valid) return null;
+          return {
+            id: user.id,
+            email: user.email,
+            name: `${user.firstName} ${user.lastName}`,
+            userType: "CANDIDATE" as UserType,
           };
         }
 

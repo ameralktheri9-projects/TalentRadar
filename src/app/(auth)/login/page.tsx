@@ -4,8 +4,9 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { LanguageToggle } from "@/components/LanguageToggle";
 
-type UserType = "COMPANY" | "AGENCY" | "ADMIN";
+type UserType = "COMPANY" | "AGENCY" | "ADMIN" | "CANDIDATE";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -38,6 +39,8 @@ export default function LoginPage() {
       router.push("/admin/dashboard");
     } else if (userType === "AGENCY") {
       router.push("/agency/dashboard");
+    } else if (userType === "CANDIDATE") {
+      router.push("/candidate/dashboard");
     } else {
       router.push("/dashboard");
     }
@@ -45,10 +48,13 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      <div className="absolute top-4 left-4">
+        <LanguageToggle currentLocale="ar" />
+      </div>
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900">منصة صيد المواهب</h1>
-          <p className="text-gray-600 mt-2">TalentHunt — B2B Recruitment Marketplace</p>
+          <p className="text-gray-600 mt-2">TalentRadar — B2B Recruitment Marketplace</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-xl p-8">
@@ -57,15 +63,16 @@ export default function LoginPage() {
           {/* User type selector */}
           <div className="flex gap-2 mb-6 bg-gray-100 rounded-lg p-1">
             {[
-              { value: "COMPANY", label: "شركة", labelEn: "Company" },
-              { value: "AGENCY", label: "وكالة", labelEn: "Agency" },
-              { value: "ADMIN", label: "إداري", labelEn: "Admin" },
+              { value: "COMPANY", label: "شركة" },
+              { value: "AGENCY", label: "وكالة" },
+              { value: "CANDIDATE", label: "مرشح" },
+              { value: "ADMIN", label: "إداري" },
             ].map((type) => (
               <button
                 key={type.value}
                 type="button"
                 onClick={() => setUserType(type.value as UserType)}
-                className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all ${
+                className={`flex-1 py-1.5 px-2 rounded-md text-xs font-medium transition-all ${
                   userType === type.value
                     ? "bg-white shadow text-blue-600"
                     : "text-gray-600 hover:text-gray-800"

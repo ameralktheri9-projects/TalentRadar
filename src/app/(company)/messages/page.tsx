@@ -16,11 +16,24 @@ interface Thread {
 }
 
 async function getThreads(): Promise<Thread[]> {
-  const baseUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
-  const res = await fetch(`${baseUrl}/api/messages/threads`, { cache: "no-store" });
-  if (!res.ok) return [];
-  const json = await res.json();
-  return json.data ?? [];
+  try {
+    const { prisma } = await import("@/lib/prisma");
+    const { getServerSession } = await import("next-auth");
+    const { authOptions } = await import("@/lib/auth");
+    const session = await getServerSession(authOptions);
+    if (!session) return [];
+    const user = session.user as { entityId?: string };
+    const threads = await prisma.messageThread.findMany({
+      where: { companyId: user.entityId },
+      include: {
+        proposal: { include: { job_request: { select: { title: true } }, agency: { select: { name_ar: true } } } },
+        messages: { orderBy: { createdAt: "desc" }, take: 1 },
+      },
+      orderBy: { lastActivityAt: "desc" },
+      take: 50,
+    });
+    return threads as unknown as Thread[];
+  } catch { return []; }
 }
 
 export default async function CompanyMessagesPage() {
