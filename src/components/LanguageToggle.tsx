@@ -17,7 +17,7 @@ export function LanguageToggle({ currentLocale: initialLocale }: { currentLocale
       body: JSON.stringify({ locale: next }),
       headers: { "Content-Type": "application/json" },
     });
-    router.refresh();
+    window.location.reload();
     setLoading(false);
   }
 
