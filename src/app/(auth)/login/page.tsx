@@ -5,11 +5,14 @@ import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { LanguageToggle } from "@/components/LanguageToggle";
+import { useLocale } from "@/hooks/useLocale";
+import { t } from "@/lib/locale.shared";
 
 type UserType = "COMPANY" | "AGENCY" | "ADMIN" | "CANDIDATE";
 
 export default function LoginPage() {
   const router = useRouter();
+  const locale = useLocale();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [userType, setUserType] = useState<UserType>("COMPANY");
@@ -31,54 +34,57 @@ export default function LoginPage() {
     setLoading(false);
 
     if (result?.error) {
-      setError("بيانات الدخول غير صحيحة. يرجى التحقق من البريد الإلكتروني وكلمة المرور.");
+      setError(locale === "ar"
+        ? "بيانات الدخول غير صحيحة. يرجى التحقق من البريد الإلكتروني وكلمة المرور."
+        : "Invalid credentials. Please check your email and password.");
       return;
     }
 
-    if (userType === "ADMIN") {
-      router.push("/admin/dashboard");
-    } else if (userType === "AGENCY") {
-      router.push("/agency/dashboard");
-    } else if (userType === "CANDIDATE") {
-      router.push("/candidate/dashboard");
-    } else {
-      router.push("/dashboard");
-    }
+    if (userType === "ADMIN") router.push("/admin/dashboard");
+    else if (userType === "AGENCY") router.push("/agency/dashboard");
+    else if (userType === "CANDIDATE") router.push("/candidate/dashboard");
+    else router.push("/dashboard");
   };
 
+  const tabs: { value: UserType; labelKey: string }[] = [
+    { value: "COMPANY",   labelKey: "login.tab.company" },
+    { value: "AGENCY",    labelKey: "login.tab.agency" },
+    { value: "CANDIDATE", labelKey: "login.tab.candidate" },
+    { value: "ADMIN",     labelKey: "login.tab.admin" },
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4" dir={locale === "ar" ? "rtl" : "ltr"}>
       <div className="absolute top-4 left-4">
-        <LanguageToggle currentLocale="ar" />
+        <LanguageToggle />
       </div>
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">منصة صيد المواهب</h1>
+          <h1 className="text-3xl font-bold text-gray-900">
+            {locale === "ar" ? "منصة صيد المواهب" : "TalentRadar"}
+          </h1>
           <p className="text-gray-600 mt-2">TalentRadar — B2B Recruitment Marketplace</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-xl p-8">
-          <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">تسجيل الدخول</h2>
+          <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
+            {t(locale, "login.title")}
+          </h2>
 
           {/* User type selector */}
-          <div className="flex gap-2 mb-6 bg-gray-100 rounded-lg p-1">
-            {[
-              { value: "COMPANY", label: "شركة" },
-              { value: "AGENCY", label: "وكالة" },
-              { value: "CANDIDATE", label: "مرشح" },
-              { value: "ADMIN", label: "إداري" },
-            ].map((type) => (
+          <div className="flex gap-1 mb-6 bg-gray-100 rounded-lg p-1">
+            {tabs.map((tab) => (
               <button
-                key={type.value}
+                key={tab.value}
                 type="button"
-                onClick={() => setUserType(type.value as UserType)}
+                onClick={() => setUserType(tab.value)}
                 className={`flex-1 py-1.5 px-2 rounded-md text-xs font-medium transition-all ${
-                  userType === type.value
+                  userType === tab.value
                     ? "bg-white shadow text-blue-600"
                     : "text-gray-600 hover:text-gray-800"
                 }`}
               >
-                {type.label}
+                {t(locale, tab.labelKey as Parameters<typeof t>[1])}
               </button>
             ))}
           </div>
@@ -86,7 +92,7 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                البريد الإلكتروني
+                {t(locale, "login.email")}
               </label>
               <input
                 id="email"
@@ -102,7 +108,7 @@ export default function LoginPage() {
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                كلمة المرور
+                {t(locale, "login.password")}
               </label>
               <input
                 id="password"
@@ -126,24 +132,24 @@ export default function LoginPage() {
               disabled={loading}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? "جاري تسجيل الدخول..." : "تسجيل الدخول"}
+              {loading ? t(locale, "login.submitting") : t(locale, "login.submit")}
             </button>
           </form>
 
           <div className="mt-6 pt-6 border-t border-gray-100">
-            <p className="text-center text-sm text-gray-600 mb-3">ليس لديك حساب؟</p>
+            <p className="text-center text-sm text-gray-600 mb-3">{t(locale, "login.noAccount")}</p>
             <div className="flex gap-3">
               <Link
                 href="/register/company"
                 className="flex-1 text-center bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-700 text-sm font-medium py-2 px-3 rounded-lg transition-colors"
               >
-                تسجيل شركة
+                {t(locale, "login.registerCompany")}
               </Link>
               <Link
                 href="/register/agency"
                 className="flex-1 text-center bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-700 text-sm font-medium py-2 px-3 rounded-lg transition-colors"
               >
-                تسجيل وكالة
+                {t(locale, "login.registerAgency")}
               </Link>
             </div>
           </div>

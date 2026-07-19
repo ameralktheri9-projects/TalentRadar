@@ -49,7 +49,7 @@ export default function DashboardLayout({ children, userType }: DashboardLayoutP
             <div className="hidden md:block" />
 
             <div className="flex items-center gap-3">
-              <LanguageToggle currentLocale="ar" />
+              <LanguageToggle />
               <NotificationBell />
             </div>
           </div>

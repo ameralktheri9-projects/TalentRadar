@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { SidebarLogo } from "@/components/brand/SidebarLogo";
+import { useLocale } from "@/hooks/useLocale";
+import { t } from "@/lib/locale.shared";
 import {
   LayoutDashboard, Briefcase, Building2, FileText, Users,
   Search, Target, MessageSquare, UserCog, BarChart2,
@@ -13,7 +15,7 @@ import {
 
 interface NavItem {
   href: string;
-  label: string;
+  labelKey: string;
   icon: React.ReactNode;
 }
 
@@ -24,47 +26,48 @@ interface SidebarProps {
 }
 
 const companyNav: NavItem[] = [
-  { href: "/dashboard",          label: "لوحة التحكم",     icon: <LayoutDashboard className="w-4 h-4 flex-shrink-0" /> },
-  { href: "/job-requests",       label: "طلبات التوظيف",   icon: <Briefcase        className="w-4 h-4 flex-shrink-0" /> },
-  { href: "/agencies",           label: "الوكالات",         icon: <Building2        className="w-4 h-4 flex-shrink-0" /> },
-  { href: "/invoices",           label: "الفواتير",         icon: <FileText         className="w-4 h-4 flex-shrink-0" /> },
-  { href: "/candidates",         label: "المرشحون",        icon: <Users            className="w-4 h-4 flex-shrink-0" /> },
-  { href: "/candidates/search",  label: "بحث المرشحين",    icon: <Search           className="w-4 h-4 flex-shrink-0" /> },
-  { href: "/placements",         label: "التعيينات",        icon: <Target           className="w-4 h-4 flex-shrink-0" /> },
-  { href: "/messages",           label: "الرسائل",          icon: <MessageSquare    className="w-4 h-4 flex-shrink-0" /> },
-  { href: "/referral",           label: "الإحالة",          icon: <BookOpen         className="w-4 h-4 flex-shrink-0" /> },
-  { href: "/settings/users",     label: "المستخدمون",      icon: <UserCog          className="w-4 h-4 flex-shrink-0" /> },
+  { href: "/dashboard",          labelKey: "nav.dashboard",       icon: <LayoutDashboard className="w-4 h-4 flex-shrink-0" /> },
+  { href: "/job-requests",       labelKey: "nav.jobRequests",     icon: <Briefcase        className="w-4 h-4 flex-shrink-0" /> },
+  { href: "/agencies",           labelKey: "nav.agencies",        icon: <Building2        className="w-4 h-4 flex-shrink-0" /> },
+  { href: "/invoices",           labelKey: "nav.invoices",        icon: <FileText         className="w-4 h-4 flex-shrink-0" /> },
+  { href: "/candidates",         labelKey: "nav.candidates",      icon: <Users            className="w-4 h-4 flex-shrink-0" /> },
+  { href: "/candidates/search",  labelKey: "nav.candidateSearch", icon: <Search           className="w-4 h-4 flex-shrink-0" /> },
+  { href: "/placements",         labelKey: "nav.placements",      icon: <Target           className="w-4 h-4 flex-shrink-0" /> },
+  { href: "/messages",           labelKey: "nav.messages",        icon: <MessageSquare    className="w-4 h-4 flex-shrink-0" /> },
+  { href: "/referral",           labelKey: "nav.referral",        icon: <BookOpen         className="w-4 h-4 flex-shrink-0" /> },
+  { href: "/settings/users",     labelKey: "nav.users",           icon: <UserCog          className="w-4 h-4 flex-shrink-0" /> },
 ];
 
 const agencyNav: NavItem[] = [
-  { href: "/agency/dashboard",       label: "لوحة التحكم",   icon: <LayoutDashboard className="w-4 h-4 flex-shrink-0" /> },
-  { href: "/agency/rfp-inbox",       label: "صندوق الطلبات", icon: <Inbox           className="w-4 h-4 flex-shrink-0" /> },
-  { href: "/agency/candidates",      label: "المرشحون",      icon: <Users           className="w-4 h-4 flex-shrink-0" /> },
-  { href: "/agency/commissions",     label: "العمولات",       icon: <DollarSign      className="w-4 h-4 flex-shrink-0" /> },
-  { href: "/agency/analytics",       label: "التحليلات",      icon: <BarChart2       className="w-4 h-4 flex-shrink-0" /> },
-  { href: "/agency/messages",        label: "الرسائل",        icon: <MessageSquare   className="w-4 h-4 flex-shrink-0" /> },
-  { href: "/agency/profile/edit",    label: "الملف الشخصي",   icon: <PenSquare       className="w-4 h-4 flex-shrink-0" /> },
-  { href: "/agency/referral",        label: "الإحالة",        icon: <BookOpen        className="w-4 h-4 flex-shrink-0" /> },
-  { href: "/agency/settings/users",  label: "المستخدمون",    icon: <UserCog         className="w-4 h-4 flex-shrink-0" /> },
+  { href: "/agency/dashboard",       labelKey: "nav.dashboard",   icon: <LayoutDashboard className="w-4 h-4 flex-shrink-0" /> },
+  { href: "/agency/rfp-inbox",       labelKey: "nav.rfpInbox",    icon: <Inbox           className="w-4 h-4 flex-shrink-0" /> },
+  { href: "/agency/candidates",      labelKey: "nav.candidates",  icon: <Users           className="w-4 h-4 flex-shrink-0" /> },
+  { href: "/agency/commissions",     labelKey: "nav.commissions", icon: <DollarSign      className="w-4 h-4 flex-shrink-0" /> },
+  { href: "/agency/analytics",       labelKey: "nav.analytics",   icon: <BarChart2       className="w-4 h-4 flex-shrink-0" /> },
+  { href: "/agency/messages",        labelKey: "nav.messages",    icon: <MessageSquare   className="w-4 h-4 flex-shrink-0" /> },
+  { href: "/agency/profile/edit",    labelKey: "nav.profile",     icon: <PenSquare       className="w-4 h-4 flex-shrink-0" /> },
+  { href: "/agency/referral",        labelKey: "nav.referral",    icon: <BookOpen        className="w-4 h-4 flex-shrink-0" /> },
+  { href: "/agency/settings/users",  labelKey: "nav.users",       icon: <UserCog         className="w-4 h-4 flex-shrink-0" /> },
 ];
 
 const adminNav: NavItem[] = [
-  { href: "/admin/dashboard",         label: "لوحة التحكم",   icon: <LayoutDashboard className="w-4 h-4 flex-shrink-0" /> },
-  { href: "/admin/agencies",          label: "الوكالات",       icon: <Building2       className="w-4 h-4 flex-shrink-0" /> },
-  { href: "/admin/companies",         label: "الشركات",        icon: <Briefcase       className="w-4 h-4 flex-shrink-0" /> },
-  { href: "/admin/verification-queue",label: "قائمة التحقق",   icon: <CheckSquare     className="w-4 h-4 flex-shrink-0" /> },
-  { href: "/admin/finance",           label: "المالية",         icon: <DollarSign      className="w-4 h-4 flex-shrink-0" /> },
-  { href: "/admin/sla",               label: "متابعة SLA",     icon: <Clock           className="w-4 h-4 flex-shrink-0" /> },
-  { href: "/admin/analytics",         label: "التحليلات",      icon: <BarChart2       className="w-4 h-4 flex-shrink-0" /> },
-  { href: "/admin/matching-config",   label: "إعداد التطابق",  icon: <Sliders         className="w-4 h-4 flex-shrink-0" /> },
-  { href: "/admin/subscriptions",     label: "الاشتراكات",      icon: <FileText        className="w-4 h-4 flex-shrink-0" /> },
-  { href: "/admin/market-reports",    label: "تقارير السوق",   icon: <BarChart2       className="w-4 h-4 flex-shrink-0" /> },
-  { href: "/admin/notifications",      label: "الإشعارات",      icon: <Settings        className="w-4 h-4 flex-shrink-0" /> },
-  { href: "/admin/settings/security", label: "الأمان",          icon: <Settings        className="w-4 h-4 flex-shrink-0" /> },
+  { href: "/admin/dashboard",          labelKey: "nav.dashboard",         icon: <LayoutDashboard className="w-4 h-4 flex-shrink-0" /> },
+  { href: "/admin/agencies",           labelKey: "nav.agencies",          icon: <Building2       className="w-4 h-4 flex-shrink-0" /> },
+  { href: "/admin/companies",          labelKey: "nav.companies",         icon: <Briefcase       className="w-4 h-4 flex-shrink-0" /> },
+  { href: "/admin/verification-queue", labelKey: "nav.verificationQueue", icon: <CheckSquare     className="w-4 h-4 flex-shrink-0" /> },
+  { href: "/admin/finance",            labelKey: "nav.finance",           icon: <DollarSign      className="w-4 h-4 flex-shrink-0" /> },
+  { href: "/admin/sla",                labelKey: "nav.sla",               icon: <Clock           className="w-4 h-4 flex-shrink-0" /> },
+  { href: "/admin/analytics",          labelKey: "nav.analytics",         icon: <BarChart2       className="w-4 h-4 flex-shrink-0" /> },
+  { href: "/admin/matching-config",    labelKey: "nav.matchingConfig",    icon: <Sliders         className="w-4 h-4 flex-shrink-0" /> },
+  { href: "/admin/subscriptions",      labelKey: "nav.subscriptions",     icon: <FileText        className="w-4 h-4 flex-shrink-0" /> },
+  { href: "/admin/market-reports",     labelKey: "nav.marketReports",     icon: <BarChart2       className="w-4 h-4 flex-shrink-0" /> },
+  { href: "/admin/notifications",      labelKey: "nav.notifications",     icon: <Settings        className="w-4 h-4 flex-shrink-0" /> },
+  { href: "/admin/settings/security",  labelKey: "nav.security",          icon: <Settings        className="w-4 h-4 flex-shrink-0" /> },
 ];
 
 export default function Sidebar({ userType, sidebarOpen = true, onClose }: SidebarProps) {
   const pathname = usePathname();
+  const locale = useLocale();
   const nav = userType === "COMPANY" ? companyNav : userType === "AGENCY" ? agencyNav : adminNav;
 
   return (
@@ -86,7 +89,6 @@ export default function Sidebar({ userType, sidebarOpen = true, onClose }: Sideb
           "md:relative md:translate-x-0",
           "fixed inset-y-0 start-0 transition-transform duration-250",
           !sidebarOpen && "-translate-x-full md:translate-x-0",
-          "[dir='rtl']_&:not([class*='translate-x-0']):-translate-x-0 [dir='rtl']_&:not([class*='translate-x-0']):translate-x-full"
         )}
         style={{ background: "linear-gradient(180deg, #0A0E27 0%, #1A1040 100%)" }}
       >
@@ -114,7 +116,7 @@ export default function Sidebar({ userType, sidebarOpen = true, onClose }: Sideb
                 <span className={cn("flex-shrink-0", isActive ? "text-[#00FFD1]" : "text-white/50")}>
                   {item.icon}
                 </span>
-                <span>{item.label}</span>
+                <span>{t(locale, item.labelKey as Parameters<typeof t>[1])}</span>
               </Link>
             );
           })}
@@ -127,7 +129,7 @@ export default function Sidebar({ userType, sidebarOpen = true, onClose }: Sideb
             className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/50 hover:bg-red-900/30 hover:text-red-400 transition-colors w-full"
           >
             <span className="text-white/40">→</span>
-            تسجيل الخروج
+            {t(locale, "common.logout")}
           </Link>
         </div>
       </aside>
