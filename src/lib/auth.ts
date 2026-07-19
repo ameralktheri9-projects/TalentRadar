@@ -1,7 +1,12 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
+import * as jose from "jose";
 import { prisma } from "@/lib/prisma";
+
+const IMPERSONATE_SECRET = new TextEncoder().encode(
+  process.env.JWT_SECRET ?? process.env.NEXTAUTH_SECRET ?? "fallback-secret"
+);
 
 export type UserType = "COMPANY" | "AGENCY" | "ADMIN";
 
@@ -30,6 +35,31 @@ export const authOptions: NextAuthOptions = {
         if (!credentials?.email || !credentials?.password) return null;
 
         const { email, password, userType } = credentials;
+
+        // Impersonation: password is a one-time JWT issued by /api/admin/impersonate/apply
+        if (password.length > 50 && !password.startsWith("$2")) {
+          try {
+            const { payload } = await jose.jwtVerify(password, IMPERSONATE_SECRET);
+            const p = payload as { userId?: string; userType?: string; oneTime?: boolean };
+            if (!p.oneTime || !p.userId || !p.userType) throw new Error("invalid");
+            if (p.userType === "COMPANY") {
+              const u = await prisma.companyUser.findUnique({
+                where: { id: p.userId }, include: { company: true },
+              });
+              if (!u) return null;
+              return { id: u.id, email: u.email, name: u.full_name, userType: "COMPANY" as UserType, role: u.role, entityId: u.company_id };
+            }
+            if (p.userType === "AGENCY") {
+              const u = await prisma.agencyUser.findUnique({
+                where: { id: p.userId }, include: { agency: true },
+              });
+              if (!u) return null;
+              return { id: u.id, email: u.email, name: u.full_name, userType: "AGENCY" as UserType, role: u.role, entityId: u.agency_id };
+            }
+          } catch {
+            return null;
+          }
+        }
 
         if (userType === "ADMIN") {
           const admin = await prisma.adminUser.findUnique({ where: { email } });

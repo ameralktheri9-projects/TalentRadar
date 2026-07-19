@@ -44,8 +44,7 @@ const agencyNav: NavItem[] = [
   { href: "/agency/analytics",       label: "التحليلات",      icon: <BarChart2       className="w-4 h-4 flex-shrink-0" /> },
   { href: "/agency/messages",        label: "الرسائل",        icon: <MessageSquare   className="w-4 h-4 flex-shrink-0" /> },
   { href: "/agency/profile/edit",    label: "الملف الشخصي",   icon: <PenSquare       className="w-4 h-4 flex-shrink-0" /> },
-  { href: "/referral",               label: "الإحالة",        icon: <BookOpen        className="w-4 h-4 flex-shrink-0" /> },
-  { href: "/agency/referral",         label: "الإحالة",        icon: <BookOpen        className="w-4 h-4 flex-shrink-0" /> },
+  { href: "/agency/referral",        label: "الإحالة",        icon: <BookOpen        className="w-4 h-4 flex-shrink-0" /> },
   { href: "/agency/settings/users",  label: "المستخدمون",    icon: <UserCog         className="w-4 h-4 flex-shrink-0" /> },
 ];
 
@@ -60,7 +59,8 @@ const adminNav: NavItem[] = [
   { href: "/admin/matching-config",   label: "إعداد التطابق",  icon: <Sliders         className="w-4 h-4 flex-shrink-0" /> },
   { href: "/admin/subscriptions",     label: "الاشتراكات",      icon: <FileText        className="w-4 h-4 flex-shrink-0" /> },
   { href: "/admin/market-reports",    label: "تقارير السوق",   icon: <BarChart2       className="w-4 h-4 flex-shrink-0" /> },
-  { href: "/admin/notifications",     label: "الإشعارات",      icon: <Settings        className="w-4 h-4 flex-shrink-0" /> },
+  { href: "/admin/notifications",      label: "الإشعارات",      icon: <Settings        className="w-4 h-4 flex-shrink-0" /> },
+  { href: "/admin/settings/security", label: "الأمان",          icon: <Settings        className="w-4 h-4 flex-shrink-0" /> },
 ];
 
 export default function Sidebar({ userType, sidebarOpen = true, onClose }: SidebarProps) {

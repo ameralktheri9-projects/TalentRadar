@@ -7,11 +7,27 @@ import { CompanyStatus } from "@prisma/client";
 interface Props {
   companyId: string;
   status: CompanyStatus;
+  adminUserId?: string;
 }
 
-export default function CompanyDetailActions({ companyId, status }: Props) {
+export default function CompanyDetailActions({ companyId, status, adminUserId }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+
+  async function handleImpersonate() {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/admin/impersonate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: adminUserId ?? companyId, userType: "COMPANY" }),
+      });
+      const data = await res.json();
+      if (data.redirectUrl) window.open(data.redirectUrl, "_blank");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function handleAction(action: "APPROVE" | "SUSPEND" | "REJECT") {
     setLoading(true);
@@ -28,7 +44,7 @@ export default function CompanyDetailActions({ companyId, status }: Props) {
   }
 
   return (
-    <div className="flex gap-3">
+    <div className="flex gap-3 flex-wrap">
       {status === "PENDING" && (
         <>
           <button
@@ -63,6 +79,15 @@ export default function CompanyDetailActions({ companyId, status }: Props) {
           className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
         >
           إعادة تفعيل
+        </button>
+      )}
+      {adminUserId && (
+        <button
+          disabled={loading}
+          onClick={handleImpersonate}
+          className="border border-purple-300 text-purple-700 hover:bg-purple-50 px-5 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+        >
+          انتحال الهوية
         </button>
       )}
     </div>
