@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import Header from "@/components/layout/Header";
+import { getLocale } from "@/lib/locale.server";
+import { t } from "@/lib/locale.shared";
 
 interface Thread {
   id: string;
@@ -40,14 +42,15 @@ export default async function CompanyMessagesPage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
 
+  const locale = getLocale();
   const threads = await getThreads();
 
   return (
-    <div dir="rtl">
-      <Header title="الرسائل" subtitle="محادثاتك مع الوكالات" />
+    <div dir={locale === "ar" ? "rtl" : "ltr"}>
+      <Header title={t(locale, "messages.title")} subtitle={t(locale, "messages.subtitle")} />
       <div className="p-6 max-w-3xl mx-auto space-y-3">
         {threads.length === 0 ? (
-          <div className="text-center text-gray-400 py-12">لا توجد محادثات بعد</div>
+          <div className="text-center text-gray-400 py-12">{t(locale, "messages.empty")}</div>
         ) : (
           threads.map((thread) => {
             const lastMsg = thread.messages[0];
@@ -63,7 +66,7 @@ export default async function CompanyMessagesPage() {
                 <div className="flex items-center justify-between mb-1">
                   <span className="font-semibold text-gray-800">{thread.proposal.job_request.title}</span>
                   <span className="text-xs text-gray-400">
-                    {new Date(thread.lastActivityAt).toLocaleDateString("ar-SA")}
+                    {new Date(thread.lastActivityAt).toLocaleDateString(locale === "ar" ? "ar-SA" : "en-US")}
                   </span>
                 </div>
                 <div className="text-sm text-gray-500 mb-1">{thread.proposal.agency.name_ar}</div>
