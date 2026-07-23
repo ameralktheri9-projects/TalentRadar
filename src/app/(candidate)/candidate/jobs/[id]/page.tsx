@@ -38,7 +38,11 @@ export default function JobDetailPage() {
   useEffect(() => {
     fetch(`/api/candidate/jobs/${id}`)
       .then((r) => r.json())
-      .then((d) => { setJob(d.data); setLoading(false); })
+      .then((d) => {
+        setJob(d.data);
+        if (d.alreadyApplied) setApplied(true);
+        setLoading(false);
+      })
       .catch(() => setLoading(false));
   }, [id]);
 
