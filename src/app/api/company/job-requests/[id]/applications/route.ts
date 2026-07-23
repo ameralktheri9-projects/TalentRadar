@@ -17,12 +17,9 @@ export async function GET(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  // Verify job request belongs to this company
-  const companyUser = await prisma.companyUser.findUnique({ where: { id: user.entityId } });
-  if (!companyUser) return NextResponse.json({ error: "Not found" }, { status: 404 });
-
+  // Verify job request belongs to this company (entityId = company_id)
   const jobRequest = await prisma.jobRequest.findUnique({ where: { id: params.id } });
-  if (!jobRequest || jobRequest.company_id !== companyUser.company_id) {
+  if (!jobRequest || jobRequest.company_id !== user.entityId) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
@@ -30,9 +27,6 @@ export async function GET(
     where: { jobRequestId: params.id },
     include: {
       profile: {
-        include: {
-          experiences: { orderBy: { startDate: "desc" }, take: 3 },
-        },
         select: {
           id: true,
           headline: true,
@@ -41,7 +35,7 @@ export async function GET(
           expectedSalaryMax: true,
           availabilityStatus: true,
           skills: true,
-          experiences: true,
+          experiences: { orderBy: { startDate: "desc" }, take: 3 },
         },
       },
     },
