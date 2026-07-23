@@ -1,7 +1,8 @@
-// TODO (Sprint 4): Require proper candidate session auth.
 export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createNotification } from "@/lib/notifications";
 import { generateCandidateSummary } from "@/lib/ai-candidate-summary";
@@ -11,11 +12,30 @@ export async function POST(
   { params }: { params: { jobRequestId: string } }
 ) {
   try {
-    const body = await req.json();
-    const { profileId, coverNote } = body;
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
+    const body = await req.json();
+    const { coverNote } = body;
+
+    // Look up the candidate's profile from their session user ID
+    const candidateUser = await prisma.candidateUser.findUnique({
+      where: { id: (session.user as { id?: string }).id },
+      include: { profile: { select: { id: true } } },
+    });
+
+    let profileId = candidateUser?.profile?.id;
+    if (!profileId && candidateUser) {
+      // Auto-create a minimal profile so the candidate can apply
+      const newProfile = await prisma.candidateProfile.create({
+        data: { userId: candidateUser.id },
+      });
+      profileId = newProfile.id;
+    }
     if (!profileId) {
-      return NextResponse.json({ error: "profileId is required" }, { status: 400 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Verify job request is open
@@ -32,15 +52,6 @@ export async function POST(
 
     if (!jobRequest) {
       return NextResponse.json({ error: "Job not found or closed" }, { status: 404 });
-    }
-
-    // Verify profile exists
-    const profile = await prisma.candidateProfile.findUnique({
-      where: { id: profileId },
-    });
-
-    if (!profile) {
-      return NextResponse.json({ error: "Profile not found" }, { status: 404 });
     }
 
     // Check for duplicate application
