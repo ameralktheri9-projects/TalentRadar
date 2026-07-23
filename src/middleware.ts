@@ -21,7 +21,7 @@ export default withAuth(
         const pathname = req.nextUrl.pathname;
 
         // Public routes
-        const publicPaths = ["/", "/login", "/register", "/pricing", "/verify-email", "/reset-password", "/accept-invite", "/agencies"];
+        const publicPaths = ["/", "/login", "/register", "/pricing", "/verify-email", "/reset-password", "/accept-invite", "/agencies", "/login/candidate"];
         if (publicPaths.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
           return true;
         }

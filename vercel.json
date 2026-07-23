@@ -6,7 +6,7 @@
     },
     {
       "path": "/api/cron/escrow-release",
-      "schedule": "0 9 * * *"
+      "schedule": "0 10 * * *"
     }
   ]
 }

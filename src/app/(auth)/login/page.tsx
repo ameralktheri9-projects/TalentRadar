@@ -152,6 +152,14 @@ export default function LoginPage() {
                 {t(locale, "login.registerAgency")}
               </Link>
             </div>
+            <div className="mt-3 text-center">
+              <Link
+                href="/login/candidate"
+                className="text-sm text-purple-600 hover:underline"
+              >
+                أنت مرشح؟ سجّل دخولك هنا
+              </Link>
+            </div>
           </div>
         </div>
       </div>

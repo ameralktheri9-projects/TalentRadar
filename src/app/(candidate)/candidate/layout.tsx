@@ -1,20 +1,40 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
+import { useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { SidebarLogo } from "@/components/brand/SidebarLogo";
 import { LayoutDashboard, Briefcase, FileText, Settings } from "lucide-react";
 
 const candidateNav = [
-  { href: "/candidate/dashboard", label: "الرئيسية",   icon: <LayoutDashboard className="w-4 h-4 flex-shrink-0" /> },
-  { href: "/candidate/jobs",      label: "الوظائف",    icon: <Briefcase        className="w-4 h-4 flex-shrink-0" /> },
-  { href: "/candidate/applications", label: "طلباتي",  icon: <FileText         className="w-4 h-4 flex-shrink-0" /> },
-  { href: "/candidate/settings",  label: "الإعدادات",  icon: <Settings         className="w-4 h-4 flex-shrink-0" /> },
+  { href: "/candidate/dashboard",     label: "الرئيسية",  icon: <LayoutDashboard className="w-4 h-4 flex-shrink-0" /> },
+  { href: "/candidate/jobs",          label: "الوظائف",   icon: <Briefcase        className="w-4 h-4 flex-shrink-0" /> },
+  { href: "/candidate/applications",  label: "طلباتي",   icon: <FileText         className="w-4 h-4 flex-shrink-0" /> },
+  { href: "/candidate/settings",      label: "الإعدادات", icon: <Settings         className="w-4 h-4 flex-shrink-0" /> },
 ];
 
 export default function CandidateLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { data: session, status } = useSession();
+
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/login");
+    } else if (status === "authenticated" && (session?.user as { userType?: string })?.userType !== "CANDIDATE") {
+      router.push("/login");
+    }
+  }, [status, session, router]);
+
+  if (status === "loading" || status === "unauthenticated") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-gray-400 text-sm">جاري التحميل...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex" dir="rtl">
@@ -45,13 +65,13 @@ export default function CandidateLayout({ children }: { children: React.ReactNod
           })}
         </nav>
         <div className="p-3 border-t border-white/10">
-          <Link
-            href="/api/auth/signout"
+          <button
+            onClick={() => signOut({ callbackUrl: "/login" })}
             className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/50 hover:bg-red-900/30 hover:text-red-400 transition-colors w-full"
           >
             <span className="text-white/40">→</span>
             تسجيل الخروج
-          </Link>
+          </button>
         </div>
       </aside>
 
@@ -81,7 +101,6 @@ export default function CandidateLayout({ children }: { children: React.ReactNod
           </div>
         </header>
 
-        {/* Top bar (desktop) */}
         <div className="hidden md:block h-[3px]" style={{ background: "linear-gradient(90deg, #00FFD1 0%, #7B61FF 100%)" }} />
         <div className="hidden md:flex items-center justify-between px-8 py-4 bg-white border-b border-gray-100">
           <p className="text-sm text-gray-500">بوابة المرشح</p>
