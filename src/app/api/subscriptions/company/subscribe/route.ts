@@ -26,6 +26,10 @@ export async function POST(req: NextRequest) {
     const now = new Date()
     const periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
 
+    // Check if this is the first paid subscription (for referral credit)
+    const existingSub = await prisma.companySubscription.findUnique({ where: { companyId: user.entityId } });
+    const isFirstPaid = !existingSub && tier !== "FREE";
+
     const sub = await prisma.companySubscription.upsert({
       where: { companyId: user.entityId },
       update: { tier, status: "ACTIVE", currentPeriodStart: now, currentPeriodEnd: periodEnd, cancelledAt: null },
@@ -37,6 +41,21 @@ export async function POST(req: NextRequest) {
         currentPeriodEnd: periodEnd,
       },
     })
+
+    // Credit referrer on first paid subscription
+    if (isFirstPaid) {
+      const company = await prisma.company.findUnique({ where: { id: user.entityId }, select: { referredByCode: true } });
+      if (company?.referredByCode) {
+        const referrerCompany = await prisma.company.findFirst({ where: { referralCode: company.referredByCode } });
+        if (referrerCompany) {
+          await prisma.company.update({ where: { id: referrerCompany.id }, data: { referralCredits: { increment: 1 } } });
+        }
+        const referrerAgency = await prisma.agency.findFirst({ where: { referralCode: company.referredByCode } });
+        if (referrerAgency) {
+          await prisma.agency.update({ where: { id: referrerAgency.id }, data: { referralCredits: { increment: 1 } } });
+        }
+      }
+    }
 
     return NextResponse.json({ subscription: sub }, { status: 201 })
   } catch (err) {

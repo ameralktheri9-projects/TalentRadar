@@ -1,5 +1,25 @@
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import AgencyProfileCTA from "./AgencyProfileCTA";
+
+export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+  const agency = await getAgency(params.slug);
+  if (!agency) return { title: "وكالة | TalentRadar" };
+  const BASE = process.env.NEXTAUTH_URL ?? "https://talent-radar-gamma.vercel.app";
+  return {
+    title: `${agency.name_ar} — TalentRadar`,
+    description: agency.bio ? agency.bio.slice(0, 155) : `${agency.name_ar}: وكالة توظيف متخصصة`,
+    openGraph: {
+      title: `${agency.name_ar} — Recruitment Agency`,
+      description: agency.bio ?? `${agency.name_ar}: وكالة توظيف`,
+      url: `${BASE}/agencies/${agency.publicSlug}`,
+      type: "website",
+    },
+    alternates: {
+      canonical: `${BASE}/agencies/${agency.publicSlug}`,
+    },
+  };
+}
 
 interface AgencyData {
   id: string;

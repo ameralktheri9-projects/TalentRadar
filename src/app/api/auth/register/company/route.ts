@@ -12,7 +12,7 @@ function generateOtp(): string {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { tradeName, crNumber, sector, contactName, contactEmail, password, phone } = body
+    const { tradeName, crNumber, sector, contactName, contactEmail, password, phone, ref } = body
 
     if (!tradeName || !crNumber || !sector || !contactName || !contactEmail || !password) {
       return NextResponse.json({ error: "جميع الحقول المطلوبة يجب تعبئتها" }, { status: 400 })
@@ -44,6 +44,7 @@ export async function POST(req: NextRequest) {
         saudi_employee_count: 0,
         total_employee_count: 0,
         status: "PENDING",
+        ...(ref ? { referredByCode: ref as string } : {}),
       },
     })
 

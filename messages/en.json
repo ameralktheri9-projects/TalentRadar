@@ -1,0 +1,134 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "agencies": "Agencies",
+    "jobRequests": "Job Requests",
+    "candidates": "Candidates",
+    "messages": "Messages",
+    "invoices": "Invoices",
+    "settings": "Settings",
+    "logout": "Log Out",
+    "placements": "Placements",
+    "analytics": "Analytics",
+    "commissions": "Commissions",
+    "rfpInbox": "RFP Inbox",
+    "profile": "Profile",
+    "users": "Users",
+    "subscription": "Subscription",
+    "finance": "Finance",
+    "sla": "SLA Monitoring",
+    "matching": "Matching Config",
+    "verification": "Verification Queue",
+    "referral": "Referral Program",
+    "jobs": "Jobs",
+    "applications": "My Applications"
+  },
+  "auth": {
+    "login": "Log In",
+    "register": "Create Account",
+    "email": "Email",
+    "password": "Password",
+    "forgotPassword": "Forgot password?",
+    "resetPassword": "Reset Password",
+    "verifyEmail": "Verify Your Email",
+    "otpSent": "We sent a verification code to your email",
+    "enterOtp": "Enter the 6-digit verification code",
+    "loginAsCompany": "Company Login",
+    "loginAsAgency": "Agency Login",
+    "loginAsCandidate": "Candidate Login",
+    "loginAsAdmin": "Admin Login"
+  },
+  "jobRequest": {
+    "title": "Job Title",
+    "sector": "Sector",
+    "salaryRange": "Salary Range",
+    "urgency": "Urgency",
+    "create": "Create Job Request",
+    "status": {
+      "open": "Open",
+      "inProgress": "In Progress",
+      "closed": "Closed",
+      "cancelled": "Cancelled"
+    }
+  },
+  "proposal": {
+    "submit": "Submit Proposal",
+    "fee": "Fee Percentage",
+    "timeline": "Estimated Timeline",
+    "accept": "Accept Proposal",
+    "reject": "Reject Proposal"
+  },
+  "subscription": {
+    "currentPlan": "Current Plan",
+    "upgrade": "Upgrade Plan",
+    "cancel": "Cancel Subscription",
+    "renewsOn": "Renews on",
+    "usageThisMonth": "Usage this month"
+  },
+  "candidate": {
+    "headline": "Professional Title",
+    "skills": "Skills",
+    "experience": "Years of Experience",
+    "expectedSalary": "Expected Salary",
+    "availability": {
+      "open": "Open to Work",
+      "passive": "Open to Opportunities",
+      "unavailable": "Not Available"
+    },
+    "applyNow": "Apply Now",
+    "applied": "Applied"
+  },
+  "invoice": {
+    "invoiceNo": "Invoice No.",
+    "issueDate": "Issue Date",
+    "dueDate": "Due Date",
+    "amount": "Amount",
+    "vat": "VAT (15%)",
+    "total": "Total",
+    "download": "Download PDF",
+    "pay": "Pay Now",
+    "status": {
+      "pending": "Pending",
+      "paid": "Paid",
+      "overdue": "Overdue",
+      "draft": "Draft",
+      "issued": "Issued",
+      "disputed": "Disputed",
+      "refunded": "Refunded"
+    }
+  },
+  "referral": {
+    "title": "Referral Program",
+    "yourLink": "Your Referral Link",
+    "referred": "People Referred",
+    "earned": "Credits Earned",
+    "shareWhatsApp": "Share on WhatsApp",
+    "shareLinkedIn": "Share on LinkedIn",
+    "copyLink": "Copy Link",
+    "copied": "Copied!",
+    "howItWorks": "How It Works",
+    "step1": "Share your referral link with colleagues",
+    "step2": "They register and complete their first payment",
+    "step3": "You earn SAR 500 in platform credits"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "delete": "Delete",
+    "edit": "Edit",
+    "view": "View",
+    "search": "Search",
+    "filter": "Filter",
+    "loading": "Loading...",
+    "noResults": "No results found",
+    "error": "Something went wrong",
+    "success": "Done",
+    "sar": "SAR",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "submit": "Submit",
+    "close": "Close"
+  }
+}

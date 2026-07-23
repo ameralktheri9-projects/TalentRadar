@@ -82,7 +82,7 @@ export default async function CompanyDetailPage({ params }: { params: { id: stri
               )}
             </div>
           </div>
-          <CompanyDetailActions companyId={company.id} status={company.status} />
+          <CompanyDetailActions companyId={company.id} status={company.status} adminUserId={company.users[0]?.id} />
         </div>
       </div>
 

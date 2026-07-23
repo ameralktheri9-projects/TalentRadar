@@ -188,8 +188,9 @@ export default async function InvoiceDetailPage({ params }: { params: { id: stri
           {/* Actions */}
           <div className="flex gap-3 pt-2 flex-wrap">
             <Link
-              href={`/api/reports/invoices/export?invoiceId=${invoice.id}&format=pdf`}
+              href={`/api/invoices/${invoice.id}/pdf`}
               className="px-5 py-2.5 bg-slate-800 text-white rounded-lg text-sm font-medium hover:bg-slate-700 transition"
+              target="_blank"
             >
               تنزيل PDF
             </Link>
