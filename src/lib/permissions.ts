@@ -24,6 +24,19 @@ export const COMPANY_PERMISSIONS = {
     "interview:view",
     "placement:view",
   ],
+  ADMIN: [
+    "job_request:create", "job_request:close", "job_request:view",
+    "proposal:accept", "proposal:reject", "proposal:view",
+    "invoice:view", "invoice:pay",
+    "team:invite", "team:remove",
+    "candidate:view", "candidate:shortlist",
+    "interview:schedule", "interview:view",
+    "placement:view",
+    "hr:activate", "hr:manage_settings", "hr:manage_team",
+    "offer:create", "offer:send", "offer:revoke",
+    "onboarding:manage", "approval:approve",
+    "headcount:create", "headcount:view",
+  ],
   // Legacy role that maps to ADMIN permissions
   HR_MANAGER: [
     "job_request:create", "job_request:close", "job_request:view",
@@ -33,6 +46,10 @@ export const COMPANY_PERMISSIONS = {
     "candidate:view", "candidate:shortlist",
     "interview:schedule", "interview:view",
     "placement:view",
+    "hr:activate", "hr:manage_settings", "hr:manage_team",
+    "offer:create", "offer:send", "offer:revoke",
+    "onboarding:manage", "approval:approve",
+    "headcount:create", "headcount:view",
   ],
 } as const;
 

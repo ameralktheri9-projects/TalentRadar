@@ -47,6 +47,7 @@ enum CompanyStatus {
 }
 
 enum CompanyUserRole {
+  ADMIN
   HR_MANAGER
   TA_LEAD
   BU_MANAGER
@@ -190,6 +191,11 @@ model Company {
   job_requests         JobRequest[]
   placements           Placement[]
   invoices             Invoice[]
+  hrSettings           HrSettings?
+  departments          Department[]
+  grades               Grade[]
+  approvalPolicies     ApprovalPolicy[]
+  employeeProfiles     EmployeeProfile[]
 }
 
 model CompanyUser {
@@ -203,10 +209,12 @@ model CompanyUser {
   status        UserStatus      @default(INVITED)
   department    String?
 
-  company       Company         @relation(fields: [company_id], references: [id])
-  job_requests  JobRequest[]
-  interviews    Interview[]
-  ratings       Rating[]
+  company          Company          @relation(fields: [company_id], references: [id])
+  job_requests     JobRequest[]
+  interviews       Interview[]
+  ratings          Rating[]
+  hrMembership     HrMembership?
+  approvalActions  ApprovalAction[]
 }
 
 model Agency {
@@ -282,6 +290,9 @@ model JobRequest {
   company               Company          @relation(fields: [company_id], references: [id])
   creator               CompanyUser      @relation(fields: [created_by], references: [id])
   proposals             Proposal[]
+  headcountPlan         HeadcountPlan?
+  directApplications    DirectApplication[]
+  offerLetters          OfferLetter[]
 }
 
 model Proposal {
@@ -660,12 +671,15 @@ model DirectApplication {
   profileId       String
   profile         CandidateProfile @relation(fields: [profileId], references: [id])
   jobRequestId    String
+  jobRequest      JobRequest       @relation(fields: [jobRequestId], references: [id])
   coverNote       String?          @db.VarChar(500)
   status          AppStatus        @default(SUBMITTED)
   aiSummary       String?
   matchScore      Int?
   appliedAt       DateTime         @default(now())
   statusUpdatedAt DateTime         @default(now())
+  offerLetter     OfferLetter?
+  onboardingPlan  OnboardingPlan?
 
   @@unique([profileId, jobRequestId])
 }
@@ -711,11 +725,299 @@ enum AppStatus {
 
 model AuditLog {
   id         String   @id @default(cuid())
-  adminId    String
+  adminId    String?
+  actorId    String?
+  actorType  String?
   action     String
   targetId   String?
   targetType String?
   metadata   Json?
   ip         String?
   createdAt  DateTime @default(now())
+}
+
+// ─── HR Phase 1: New Enums ───────────────────────────────────────────────────
+
+enum HrRole {
+  HR_ADMIN
+  HR_MANAGER
+  HR_RECRUITER
+  HR_COORDINATOR
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  ESCALATED
+  CANCELLED
+}
+
+enum OfferStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  DECLINED
+  EXPIRED
+  REVOKED
+}
+
+enum OnboardingStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  OVERDUE
+}
+
+enum ContractType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  INTERNSHIP
+}
+
+enum DomainEventStatus {
+  PENDING
+  PROCESSED
+  FAILED
+}
+
+// ─── HR Phase 1: New Models ──────────────────────────────────────────────────
+
+// Per-company HR module config; activating HR creates this record.
+model HrSettings {
+  id                  String   @id @default(cuid())
+  companyId           String   @unique
+  company             Company  @relation(fields: [companyId], references: [id])
+  isActive            Boolean  @default(false)
+  defaultLocale       String   @default("ar")
+  offerValidityDays   Int      @default(7)
+  requireApproval     Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+// Grants a CompanyUser an HR-specific role (orthogonal to CompanyUserRole).
+model HrMembership {
+  id          String      @id @default(cuid())
+  companyId   String
+  userId      String      @unique
+  user        CompanyUser @relation(fields: [userId], references: [id])
+  hrRole      HrRole
+  createdAt   DateTime    @default(now())
+
+  @@index([companyId])
+}
+
+model Department {
+  id          String      @id @default(cuid())
+  companyId   String
+  company     Company     @relation(fields: [companyId], references: [id])
+  nameAr      String
+  nameEn      String?
+  parentId    String?
+  parent      Department? @relation("DeptTree", fields: [parentId], references: [id])
+  children    Department[] @relation("DeptTree")
+  positions   Position[]
+  createdAt   DateTime    @default(now())
+
+  @@index([companyId])
+}
+
+model Grade {
+  id          String     @id @default(cuid())
+  companyId   String
+  company     Company    @relation(fields: [companyId], references: [id])
+  code        String
+  nameAr      String
+  nameEn      String?
+  salaryMin   Int
+  salaryMax   Int
+  positions   Position[]
+  createdAt   DateTime   @default(now())
+
+  @@unique([companyId, code])
+}
+
+model Position {
+  id             String       @id @default(cuid())
+  departmentId   String
+  department     Department   @relation(fields: [departmentId], references: [id])
+  gradeId        String?
+  grade          Grade?       @relation(fields: [gradeId], references: [id])
+  titleAr        String
+  titleEn        String?
+  isActive       Boolean      @default(true)
+  headcountPlans HeadcountPlan[]
+  createdAt      DateTime     @default(now())
+}
+
+// Budget request that links a JobRequest to a Position/Grade for approval.
+model HeadcountPlan {
+  id             String           @id @default(cuid())
+  jobRequestId   String           @unique
+  jobRequest     JobRequest       @relation(fields: [jobRequestId], references: [id])
+  positionId     String?
+  position       Position?        @relation(fields: [positionId], references: [id])
+  requestedBy    String
+  headcount      Int              @default(1)
+  justification  String?
+  approvalReqs   ApprovalRequest[]
+  createdAt      DateTime         @default(now())
+}
+
+// Defines the approval chain for a company (e.g. "2-step: HR_MANAGER → ADMIN").
+model ApprovalPolicy {
+  id          String            @id @default(cuid())
+  companyId   String
+  company     Company           @relation(fields: [companyId], references: [id])
+  name        String
+  entityType  String            // "HeadcountPlan" | "OfferLetter"
+  steps       Json              // Array<{ order: number; hrRole: HrRole }>
+  isActive    Boolean           @default(true)
+  createdAt   DateTime          @default(now())
+  requests    ApprovalRequest[]
+
+  @@index([companyId, entityType])
+}
+
+// One run of an ApprovalPolicy for a specific entity.
+model ApprovalRequest {
+  id              String          @id @default(cuid())
+  policyId        String
+  policy          ApprovalPolicy  @relation(fields: [policyId], references: [id])
+  headcountPlanId String?
+  headcountPlan   HeadcountPlan?  @relation(fields: [headcountPlanId], references: [id])
+  offerLetterId   String?
+  offerLetter     OfferLetter?    @relation(fields: [offerLetterId], references: [id])
+  currentStep     Int             @default(1)
+  status          ApprovalStatus  @default(PENDING)
+  actions         ApprovalAction[]
+  createdAt       DateTime        @default(now())
+  resolvedAt      DateTime?
+}
+
+model ApprovalAction {
+  id                String          @id @default(cuid())
+  requestId         String
+  request           ApprovalRequest @relation(fields: [requestId], references: [id])
+  actorId           String
+  actor             CompanyUser     @relation(fields: [actorId], references: [id])
+  step              Int
+  decision          ApprovalStatus
+  comment           String?
+  decidedAt         DateTime        @default(now())
+}
+
+// Offer letter tied to a DirectApplication.
+model OfferLetter {
+  id                String           @id @default(cuid())
+  applicationId     String           @unique
+  application       DirectApplication @relation(fields: [applicationId], references: [id])
+  jobRequestId      String
+  jobRequest        JobRequest       @relation(fields: [jobRequestId], references: [id])
+  issuedBy          String
+  status            OfferStatus      @default(DRAFT)
+  contractType      ContractType     @default(FULL_TIME)
+  offeredSalary     Int
+  startDate         DateTime?
+  expiresAt         DateTime?
+  pdfUrl            String?
+  notes             String?
+  sentAt            DateTime?
+  respondedAt       DateTime?
+  approvalRequests  ApprovalRequest[]
+  contract          Contract?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+}
+
+model Contract {
+  id            String      @id @default(cuid())
+  offerLetterId String      @unique
+  offerLetter   OfferLetter @relation(fields: [offerLetterId], references: [id])
+  contractType  ContractType
+  startDate     DateTime
+  endDate       DateTime?
+  pdfUrl        String?
+  signedByCandidate Boolean @default(false)
+  signedAt      DateTime?
+  createdAt     DateTime    @default(now())
+}
+
+// Onboarding checklist template item (reusable across plans).
+model OnboardingTask {
+  id          String              @id @default(cuid())
+  companyId   String
+  titleAr     String
+  titleEn     String?
+  category    String              // "DOCUMENTS" | "IT" | "ORIENTATION" | "OTHER"
+  dueDayOffset Int               @default(0) // days after start_date
+  isActive    Boolean             @default(true)
+  items       OnboardingTaskItem[]
+  createdAt   DateTime            @default(now())
+
+  @@index([companyId])
+}
+
+// One onboarding plan per hired candidate.
+model OnboardingPlan {
+  id            String              @id @default(cuid())
+  applicationId String              @unique
+  application   DirectApplication   @relation(fields: [applicationId], references: [id])
+  startDate     DateTime
+  status        OnboardingStatus    @default(NOT_STARTED)
+  completedAt   DateTime?
+  items         OnboardingTaskItem[]
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+}
+
+model OnboardingTaskItem {
+  id          String          @id @default(cuid())
+  planId      String
+  plan        OnboardingPlan  @relation(fields: [planId], references: [id])
+  taskId      String
+  task        OnboardingTask  @relation(fields: [taskId], references: [id])
+  status      OnboardingStatus @default(NOT_STARTED)
+  dueAt       DateTime?
+  completedAt DateTime?
+  notes       String?
+
+  @@unique([planId, taskId])
+}
+
+// Post-hire employee record created when an offer is accepted.
+model EmployeeProfile {
+  id                    String   @id @default(cuid())
+  companyId             String
+  company               Company  @relation(fields: [companyId], references: [id])
+  candidateProfileId    String?
+  nationalIdEncrypted   String?  // AES-256-GCM; format: "iv:ciphertext"
+  jobTitle              String?
+  departmentId          String?
+  gradeId               String?
+  startDate             DateTime?
+  employeeNumber        String?
+  isActive              Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([companyId])
+}
+
+// Transactional outbox for domain events (cross-domain side effects).
+model DomainEvent {
+  id          String            @id @default(cuid())
+  aggregateId String
+  aggregate   String            // e.g. "OfferLetter", "OnboardingPlan"
+  eventType   String            // e.g. "offer.sent", "onboarding.task.completed"
+  payload     Json
+  status      DomainEventStatus @default(PENDING)
+  attempts    Int               @default(0)
+  lastError   String?
+  processedAt DateTime?
+  createdAt   DateTime          @default(now())
+
+  @@index([status, createdAt])
 }

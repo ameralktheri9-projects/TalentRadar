@@ -36,4 +36,11 @@ export const EMAIL_TEMPLATES = {
   SUBSCRIPTION_PAYMENT_FAILED: process.env.SENDGRID_TEMPLATE_PAYMENT_FAILED || 'd-placeholder-payment-failed',
   APPLICATION_STATUS_CHANGE: process.env.SENDGRID_TEMPLATE_APP_STATUS || 'd-placeholder-app-status',
   INTERVIEW_INVITED: process.env.SENDGRID_TEMPLATE_INTERVIEW || 'd-placeholder-interview',
+  // HR Phase 1
+  OFFER_SENT:             process.env.SENDGRID_TEMPLATE_OFFER_SENT     || 'd-placeholder-offer-sent',
+  OFFER_ACCEPTED:         process.env.SENDGRID_TEMPLATE_OFFER_ACCEPTED  || 'd-placeholder-offer-accepted',
+  OFFER_DECLINED:         process.env.SENDGRID_TEMPLATE_OFFER_DECLINED  || 'd-placeholder-offer-declined',
+  APPROVAL_REQUESTED:     process.env.SENDGRID_TEMPLATE_APPROVAL_REQ    || 'd-placeholder-approval-req',
+  APPROVAL_DECIDED:       process.env.SENDGRID_TEMPLATE_APPROVAL_DECIDED || 'd-placeholder-approval-decided',
+  ONBOARDING_TASK_DUE:    process.env.SENDGRID_TEMPLATE_ONBOARDING_DUE  || 'd-placeholder-onboarding-due',
 }
